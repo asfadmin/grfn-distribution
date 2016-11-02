@@ -2,7 +2,7 @@
 
 import boto3
 import zipfile
-import os.path
+import os
 
 
 landing_bucket_name = 'grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91'
