@@ -13,17 +13,27 @@ sleep_time_in_seconds = 30
 
 output_files = [
     {
-        'extension': '.unw.geo.zip',
+        'extension': '.unw_geo.zip',
         'files': [
+            {'source': 'fine_interferogram.xml', 'dest': 'fine_interferogram.xml'},
             {'source': 'merged/filt_topophase.unw.geo', 'dest': 'filt_topophase.unw.geo'},
             {'source': 'merged/filt_topophase.unw.geo.hdr', 'dest': 'filt_topophase.unw.geo.hdr'},
             {'source': 'merged/filt_topophase.unw.geo.vrt', 'dest': 'filt_topophase.unw.geo.vrt'},
             {'source': 'merged/filt_topophase.unw.geo.xml', 'dest': 'filt_topophase.unw.geo.xml'},
+            {'source': 'merged/phsig.cor.geo', 'dest': 'phsig.cor.geo'},
+            {'source': 'merged/phsig.cor.geo.hdr', 'dest': 'phsig.cor.geo.hdr'},
+            {'source': 'merged/phsig.cor.geo.vrt', 'dest': 'phsig.cor.geo.vrt'},
+            {'source': 'merged/phsig.cor.geo.xml', 'dest': 'phsig.cor.geo.xml'},
         ],
     },
     {
-        'extension': '.dem.zip',
+        'extension': '.full_res.zip',
         'files': [
+            {'source': 'fine_interferogram.xml', 'dest': 'fine_interferogram.xml'},
+            {'source': 'merged/filt_topophase.flat', 'dest': 'filt_topophase.flat'},
+            {'source': 'merged/filt_topophase.flat.hdr', 'dest': 'filt_topophase.flat.hdr'},
+            {'source': 'merged/filt_topophase.flat.vrt', 'dest': 'filt_topophase.flat.vrt'},
+            {'source': 'merged/filt_topophase.flat.xml', 'dest': 'filt_topophase.flat.xml'},
             {'source': 'merged/dem.crop', 'dest': 'dem.crop'},
             {'source': 'merged/dem.crop.hdr', 'dest': 'dem.crop.hdr'},
             {'source': 'merged/dem.crop.vrt', 'dest': 'dem.crop.vrt'},
@@ -31,21 +41,11 @@ output_files = [
         ]
     },
     {
-        'extension': '.phsig.zip',
+        'extension': '.5cm_browse.zip',
         'files': [
-            {'source': 'merged/phsig.cor.geo', 'dest': 'phsig.cor.geo'},
-            {'source': 'merged/phsig.cor.geo.hdr', 'dest': 'phsig.cor.geo.hdr'},
-            {'source': 'merged/phsig.cor.geo.vrt', 'dest': 'phsig.cor.geo.vrt'},
-            {'source': 'merged/phsig.cor.geo.xml', 'dest': 'phsig.cor.geo.xml'},
-        ]
-    },
-    {
-        'extension': '.flat.zip',
-        'files': [
-            {'source': 'merged/filt_topophase.flat', 'dest': 'filt_topophase.flat'},
-            {'source': 'merged/filt_topophase.flat.hdr', 'dest': 'filt_topophase.flat.hdr'},
-            {'source': 'merged/filt_topophase.flat.vrt', 'dest': 'filt_topophase.flat.vrt'},
-            {'source': 'merged/filt_topophase.flat.xml', 'dest': 'filt_topophase.flat.xml'},
+            {'source': 'fine_interferogram.xml', 'dest': 'fine_interferogram.xml'},
+            {'source': 'unw.geo_5cm.browse.png', 'dest': 'unw.geo_5cm.browse.png'},
+            {'source': 'unw.geo_5cm.browse_small.png', 'dest': 'unw.geo_5cm.browse_small.png'},
         ]
     },
 ]
