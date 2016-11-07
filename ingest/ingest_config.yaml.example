@@ -1,0 +1,55 @@
+landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
+content_bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+working_directory: /tmp/
+sleep_time_in_seconds: 30
+
+output_files:
+  - extension: .unw_geo.zip
+    files:
+      - source: fine_interferogram.xml
+        dest: fine_interferogram.xml
+      - source: merged/filt_topophase.unw.geo
+        dest: filt_topophase.unw.geo
+      - source: merged/filt_topophase.unw.geo.hdr
+        dest: filt_topophase.unw.geo.hdr
+      - source: merged/filt_topophase.unw.geo.vrt
+        dest: filt_topophase.unw.geo.vrt
+      - source: merged/filt_topophase.unw.geo.xml
+        dest: filt_topophase.unw.geo.xml
+      - source: merged/phsig.cor.geo
+        dest: phsig.cor.geo
+      - source: merged/phsig.cor.geo.hdr
+        dest: phsig.cor.geo.hdr
+      - source: merged/phsig.cor.geo.vrt
+        dest: phsig.cor.geo.vrt
+      - source: merged/phsig.cor.geo.xml
+        dest: phsig.cor.geo.xml
+  - extension: .full_res.zip
+    files:
+      - source: fine_interferogram.xml
+        dest: fine_interferogram.xml
+      - source: merged/filt_topophase.flat
+        dest: filt_topophase.flat
+      - source: merged/filt_topophase.flat.hdr
+        dest: filt_topophase.flat.hdr
+      - source: merged/filt_topophase.flat.vrt
+        dest: filt_topophase.flat.vrt
+      - source: merged/filt_topophase.flat.xml
+        dest: filt_topophase.flat.xml
+      - source: merged/dem.crop
+        dest: dem.crop
+      - source: merged/dem.crop.hdr
+        dest: dem.crop.hdr
+      - source: merged/dem.crop.vrt
+        dest: dem.crop.vrt
+      - source: merged/dem.crop.xml
+        dest: dem.crop.xml
+  - extension: .5cm_browse.zip
+    files:
+      - source: fine_interferogram.xml
+        dest: fine_interferogram.xml
+      - source: unw.geo_5cm.browse.png
+        dest: unw.geo_5cm.browse.png
+      - source: unw.geo_5cm.browse_small.png
+        dest: unw.geo_5cm.browse_small.png
+
