@@ -1,15 +1,11 @@
 #!/usr/bin/python
 
 import boto3
+import yaml
 from jinja2 import Template
 
-bucket_name = 'grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de'
-expire_time_in_seconds = 86400
-output_html_name = '/var/www/html/index.html'
-template_file = 'index.html.template'
 
-
-def get_links():
+def get_links(bucket_name, expire_time_in_seconds):
     s3_client = boto3.client('s3')
     bucket = boto3.resource('s3').Bucket(bucket_name)
 
@@ -27,17 +23,24 @@ def get_links():
     return links
 
 
-def get_content():
-    with open(template_file, 'r') as t:
+def get_content(content_config):
+    with open(content_config['template_file'], 'r') as t:
         template_text = t.read()
-    links = get_links()
+    links = get_links(content_config['bucket_name'], content_config['expire_time_in_seconds'])
     template = Template(template_text)
     content = template.render(links=links)
     return content
 
 
+def get_config(config_file_name):
+    with open(config_file_name, 'r') as f:
+        config = yaml.load(f)
+    return config
+
+
 if __name__ == "__main__":
-    content = get_content()
-    with open(output_html_name, 'w') as f:
+    config = get_config('door_config.yaml')
+    content = get_content(config['content'])
+    with open(config['output_html_file'], 'w') as f:
         f.write(content)
 
