@@ -2,6 +2,7 @@
 
 import boto3
 import yaml
+import argparse
 from jinja2 import Template
 
 
@@ -32,6 +33,19 @@ def get_content(content_config):
     return content
 
 
+def get_command_line_options():
+    parser = argparse.ArgumentParser('Generate index.html page for GRFN Door application, presenting signed links to files stored in AWS S3')
+    parser.add_argument(
+        '-c', '--config',
+        action = 'store',
+        dest = 'config_file',
+        default = 'door_config.yaml',
+        help = 'use a specific config file',
+    )
+    options = parser.parse_args()
+    return options
+
+
 def get_config(config_file_name):
     with open(config_file_name, 'r') as f:
         config = yaml.load(f)
@@ -39,7 +53,8 @@ def get_config(config_file_name):
 
 
 if __name__ == "__main__":
-    config = get_config('door_config.yaml')
+    options = get_command_line_options()
+    config = get_config(options.config_file)
     content = get_content(config['content'])
     with open(config['output_html_file'], 'w') as f:
         f.write(content)
