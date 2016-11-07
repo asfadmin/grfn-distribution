@@ -5,6 +5,7 @@ import zipfile
 import os
 import time
 import yaml
+import argparse
 
 
 def create_output_zip(source_name, dest_name, files):
@@ -52,8 +53,22 @@ def get_config(config_file_name):
     return config
  
 
+def get_command_line_options():
+    parser = argparse.ArgumentParser('Ingest Sentinel-1 interferogram products')
+    parser.add_argument(
+        '-c', '--config',
+        action = 'store',
+        dest = 'config_file',
+        default = 'ingest_config.yaml',
+        help = 'use a specific config file',
+    )
+    options = parser.parse_args()
+    return options
+
+
 if __name__ == "__main__":
-    config = get_config('ingest_config.yaml')
+    options = get_command_line_options()
+    config = get_config(options.config_file)
     os.chdir(config['working_directory'])
     while True:
         for obj in get_objects_to_ingest(config['landing_bucket_name']):
