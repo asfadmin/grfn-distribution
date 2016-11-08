@@ -85,9 +85,13 @@ def ingest_loop(ingest_config):
 
 
 if __name__ == "__main__":
-    options = get_command_line_options()
-    config = get_config(options.config_file)
-    log = get_logger(config['log'])
-    os.chdir(config['working_directory'])
-    ingest_loop(config['ingest'])
+    try:
+        options = get_command_line_options()
+        config = get_config(options.config_file)
+        log = get_logger(config['log'])
+        os.chdir(config['working_directory'])
+        ingest_loop(config['ingest'])
+    except:
+        log.exception('Unhandled exception!')
+        raise
 
