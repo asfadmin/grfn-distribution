@@ -45,11 +45,11 @@ def ingest_object(obj, content_bucket_name, output_files):
     obj.delete()
 
 
-def get_objects_to_ingest(landing_bucket_name):
+def get_object_to_ingest(landing_bucket_name):
     landing_bucket = get_bucket(landing_bucket_name)
-    object_summaries = landing_bucket.objects.all()
-    objects = [s.Object() for s in object_summaries]
-    return objects
+    for object_summary in landing_bucket.objects.limit(1):
+        return object_summary.Object()
+    return None
 
 
 def get_config(config_file_name):
@@ -77,11 +77,13 @@ def get_logger(log_config):
 
 def ingest_loop(ingest_config):
     while True:
-        for obj in get_objects_to_ingest(ingest_config['landing_bucket_name']):
+        obj = get_object_to_ingest(ingest_config['landing_bucket_name'])
+        if obj:
             log.info('Processing input file {0}'.format(obj.key))
             ingest_object(obj, ingest_config['content_bucket_name'], ingest_config['output_files'])
             log.info('Done processing input_file{0}'.format(obj.key))
-        time.sleep(ingest_config['sleep_time_in_seconds'])
+        else:
+            time.sleep(ingest_config['sleep_time_in_seconds'])
 
 
 if __name__ == "__main__":
