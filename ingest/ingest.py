@@ -81,7 +81,7 @@ def ingest_loop(ingest_config):
         if obj:
             log.info('Processing input file {0}'.format(obj.key))
             ingest_object(obj, ingest_config['content_bucket_name'], ingest_config['output_files'])
-            log.info('Done processing input_file{0}'.format(obj.key))
+            log.info('Done processing input file {0}'.format(obj.key))
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
