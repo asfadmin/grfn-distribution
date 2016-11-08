@@ -6,6 +6,9 @@ import os
 import time
 import yaml
 import argparse
+import asf.log
+
+log = asf.log.getLogger()
 
 
 def create_output_zip(source_name, dest_name, files):
@@ -26,9 +29,11 @@ def upload_object(bucket_name, key, local_file_name):
 
 def process_output_file(output_file, input_file_name, content_bucket_name):
     output_file_name = os.path.splitext(input_file_name)[0] + output_file['extension']
+    log.info('Processing output file {0}'.format(output_file_name))
     create_output_zip(input_file_name, output_file_name, output_file['files'])
     upload_object(content_bucket_name, os.path.split(output_file_name)[1], output_file_name)
     os.remove(output_file_name)
+    log.info('Done processing output file {0}'.format(output_file_name))
 
 
 def ingest_object(obj, content_bucket_name, output_files):
@@ -66,14 +71,23 @@ def get_command_line_options():
     return options
 
 
+def get_logger(log_config):
+    return asf.log.getLogger(screen=log_config['screen'], verbose=log_config['verbose'])
+
+
+def ingest_loop(ingest_config):
+    while True:
+        for obj in get_objects_to_ingest(ingest_config['landing_bucket_name']):
+            log.info('Processing input file {0}'.format(obj.key))
+            ingest_object(obj, ingest_config['content_bucket_name'], ingest_config['output_files'])
+            log.info('Done processing input_file{0}'.format(obj.key))
+        time.sleep(ingest_config['sleep_time_in_seconds'])
+
+
 if __name__ == "__main__":
     options = get_command_line_options()
     config = get_config(options.config_file)
+    log = get_logger(config['log'])
     os.chdir(config['working_directory'])
-    while True:
-        for obj in get_objects_to_ingest(config['landing_bucket_name']):
-            print('Processing {0}'.format(obj.key))
-            ingest_object(obj, config['content_bucket_name'], config['output_files'])
-            print('Done processing {0}'.format(obj.key))
-        time.sleep(config['sleep_time_in_seconds'])
+    ingest_loop(config['ingest'])
 
