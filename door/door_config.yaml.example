@@ -1,0 +1,7 @@
+content:
+  template_file: index.html.template
+  bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+  expire_time_in_seconds: 86400
+
+output_html_file: /var/www/html/index.html
+
