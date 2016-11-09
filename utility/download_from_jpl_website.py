@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# one-off utility script to spider JPL's static S3 front-end website and recursively download files
+# this isn't production quality code, use at your own risk
+
 import requests
 import xml.etree.ElementTree as ET
 import os

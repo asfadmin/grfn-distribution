@@ -27,19 +27,19 @@ def upload_object(bucket_name, key, local_file_name):
     bucket.upload_file(local_file_name, key)
 
 
-def process_output_file(output_file, input_file_name, content_bucket_name):
-    output_file_name = os.path.splitext(input_file_name)[0] + output_file['extension']
+def process_output_file(output_file_config, input_file_name, content_bucket_name):
+    output_file_name = os.path.splitext(input_file_name)[0] + output_file_config['extension']
     log.info('Processing output file {0}'.format(output_file_name))
-    create_output_zip(input_file_name, output_file_name, output_file['files'])
+    create_output_zip(input_file_name, output_file_name, output_file_config['files'])
     upload_object(content_bucket_name, os.path.split(output_file_name)[1], output_file_name)
     os.remove(output_file_name)
     log.info('Done processing output file {0}'.format(output_file_name))
 
 
-def ingest_object(obj, content_bucket_name, output_files):
+def ingest_object(obj, content_bucket_name, output_file_configs):
     obj.download_file(obj.key)
-    for output_file in output_files:
-        process_output_file(output_file, obj.key, content_bucket_name)
+    for output_file_config in output_file_configs:
+        process_output_file(output_file_config, obj.key, content_bucket_name)
     upload_object(content_bucket_name, obj.key, obj.key)
     os.remove(obj.key)
     obj.delete()
