@@ -7,8 +7,9 @@ import time
 import yaml
 import argparse
 import asf.log
+import logging
 
-log = asf.log.getLogger()
+log = logging.getLogger()
 
 
 def create_output_zip(source_name, dest_name, files):
