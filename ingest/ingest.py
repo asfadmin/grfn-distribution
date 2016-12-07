@@ -13,10 +13,12 @@ log = logging.getLogger()
 
 
 def create_output_zip(source_name, dest_name, files):
+    source_dir = os.path.splitext(source_name)[0]
     with zipfile.ZipFile(source_name, 'r') as source_zip:
         with zipfile.ZipFile(dest_name, 'w') as dest_zip:
             for f in files:
-                dest_zip.writestr(f['dest'], source_zip.read(f['source']))
+                source_file = os.path.join(source_dir, f['source'])
+                dest_zip.writestr(f['dest'], source_zip.read(source_file))
  
 
 def get_bucket(bucket_name):
