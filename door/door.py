@@ -1,7 +1,7 @@
 import boto3
 import yaml
 import os
-from flask import Flask, g, redirect, render_template
+from flask import Flask, g, redirect, render_template, request
     
 app = Flask(__name__)
 
@@ -10,7 +10,6 @@ def init_app():
     with open(os.environ['DOOR_CONFIG'], 'r') as f:
         config = yaml.load(f)
         app.config.update(dict(config['content']))
-        app.config['userid'] = os.environ['URS_USERID']
     pass
 
 @app.route('/')
@@ -20,7 +19,7 @@ def show_index():
 @app.route('/download/<granule>')
 def download_redirect(granule):
    signed_url = get_link(app.config['bucket_name'], granule, app.config['expire_time_in_seconds'])
-   signed_url = signed_url + "&userid=" + app.config['userid']
+   signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
    return redirect(signed_url)
    
 
