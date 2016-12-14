@@ -9,16 +9,15 @@ app = Flask(__name__)
 def init_app():
     with open(os.environ['DOOR_CONFIG'], 'r') as f:
         config = yaml.load(f)
-        app.config.update(dict(config['content']))
-    pass
+        app.config.update(dict(config))
 
 @app.route('/')
 def show_index():
    return get_content()
 
-@app.route('/download/<granule>')
-def download_redirect(granule):
-   signed_url = get_link(app.config['bucket_name'], granule, app.config['expire_time_in_seconds'])
+@app.route('/download/<file_name>')
+def download_redirect(file_name):
+   signed_url = get_link(app.config['bucket_name'], file_name, app.config['expire_time_in_seconds'])
    signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
    return redirect(signed_url)
    
