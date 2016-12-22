@@ -22,8 +22,8 @@ def get_isce_data(source_zip):
     m = re.search('ctx: ({.*})\n\d', content, re.DOTALL)
     data = json.loads(m.group(1))
     data['bounding_box'] = {}
+    pattern = 'geocode.(North|South|East|West) = (.*)$'
     for line in content.split('\n'):
-        pattern = 'geocode.(North|South|East|West) = (.*)$'
         match = re.search(pattern, line)
         if match is not None:
             data['bounding_box'][match.group(1).lower()] = match.group(2)
@@ -44,7 +44,6 @@ def get_cmr_payload(source_zip, file_name, collection):
 
 
 def send_to_cmr(cmr_config, payload):
-    print(payload)
     boto3.client('lambda').invoke(FunctionName=cmr_config['lambda_name'], InvocationType='Event', Payload=json.dumps(payload), Qualifier=cmr_config['lambda_alias'])
 
 
