@@ -8,8 +8,10 @@ ingest:
   landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
   content_bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
   sleep_time_in_seconds: 30
+  cmr_lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
   output_files:
     - extension: .unw_geo.zip
+      cmr_collection: UNW_GEO
       files:
         - source: fine_interferogram.xml
           dest: fine_interferogram.xml
@@ -30,6 +32,7 @@ ingest:
         - source: merged/phsig.cor.geo.xml
           dest: phsig.cor.geo.xml
     - extension: .full_res.zip
+      cmr_collection: FULL_RES
       files:
         - source: fine_interferogram.xml
           dest: fine_interferogram.xml
