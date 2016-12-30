@@ -14,21 +14,15 @@ import json
 log = logging.getLogger()
 
 
-def send_to_cmr(lambda_arn, payload):
-    region_name = lambda_arn.split(':')[3]
-    lam = boto3.client('lambda', region_name=region_name)
-    lam.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
-
-
-def create_output_zip(source_zip, dest_name, files):
-    with zipfile.ZipFile(dest_name, 'w') as dest_zip:
+def create_output_zip_file(output_file_name, input_zip_handle, files):
+    with zipfile.ZipFile(output_file_name, 'w') as output_zip_handle:
         for f in files:
-            dest_zip.writestr(f['dest'], source_zip.read(f['source']))
+            output_zip_handle.writestr(f['dest'], input_zip_handle.read(f['source']))
 
 
-def create_output_file(source_zip, dest_name, file_name):
-    with open(dest_name, 'w') as output_file:
-        output_file.write(source_zip.read(file_name))
+def create_output_file(output_file_name, input_zip_handle, file_name):
+    with open(output_file_name, 'w') as f:
+        f.write(input_zip_handle.read(file_name))
  
 
 def get_bucket(bucket_name):
@@ -40,12 +34,12 @@ def upload_object(bucket_name, key):
     bucket.upload_file(key, key)
 
 
-def process_output_file(output_file_config, source_zip):
+def process_output_file(output_file_config, input_zip_handle):
     log.info('Processing output file {0}'.format(output_file_config['key']))
     if 'files' in output_file_config:
-        create_output_zip(source_zip, output_file_config['key'], output_file_config['files'])
+        create_output_zip_file(output_file_config['key'], input_zip_handle, output_file_config['files'])
     else:
-        create_output_file(source_zip, output_file_config['key'], output_file_config['file'])
+        create_output_file(output_file_config['key'], input_zip_handle, output_file_config['file'])
     upload_object(output_file_config['bucket'], output_file_config['key'])
     os.remove(output_file_config['key'])
     log.info('Done processing output file {0}'.format(output_file_config['key']))
@@ -53,9 +47,9 @@ def process_output_file(output_file_config, source_zip):
 
 def process_input_file(obj, output_file_configs):
     obj.download_file(obj.key)
-    with zipfile.ZipFile(obj.key, 'r') as source_zip:
+    with zipfile.ZipFile(obj.key, 'r') as input_zip_handle:
         for output_file_config in output_file_configs:
-            process_output_file(output_file_config, source_zip)
+            process_output_file(output_file_config, input_zip_handle)
     # TODO figure out what to do with the original
     upload_object(output_file_configs[0]['bucket'], obj.key)
     os.remove(obj.key)
@@ -89,12 +83,18 @@ def get_command_line_options():
 
 
 def get_logger(log_config):
-    return asf.log.getLogger(screen=log_config['screen'], verbose=log_config['verbose'])
+    return asf.log.getLogger(**log_config)
 
 
-def trigger_cmr_reporting(cmr_config):
+def send_granule_to_cmr(lambda_arn, payload):
+    region_name = lambda_arn.split(':')[3]
+    lambda_client = boto3.client('lambda', region_name=region_name)
+    lambda_client.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
+
+
+def process_cmr_reporting(cmr_config):
     for granule in cmr_config['granules']:
-        send_to_cmr(cmr_config['lambda_arn'], granule)
+        send_granule_to_cmr(cmr_config['lambda_arn'], granule)
 
 
 def ingest_loop(ingest_config):
@@ -102,12 +102,15 @@ def ingest_loop(ingest_config):
         obj = get_object_to_ingest(ingest_config['landing_bucket_name'])
         if obj:
             log.info('Processing input file {0}'.format(obj.key))
+
             # TODO clean this substitution mess up
             name = os.path.splitext(obj.key)[0]
             output_files = yaml.load(str(ingest_config['output_files']).replace('{name}', name))
-            process_input_file(obj, output_files)
             cmr = yaml.load(str(ingest_config['cmr']).replace('{name}', name))
-            #trigger_cmr_reporting(cmr)
+
+            process_input_file(obj, output_files)
+            process_cmr_reporting(cmr)
+
             log.info('Done processing input file {0}'.format(obj.key))
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
