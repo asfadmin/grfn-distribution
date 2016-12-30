@@ -2,62 +2,86 @@ log:
   screen: no
   verbose: no
 
-working_directory: /tmp/
+working_directory: "/tmp/"
 
 ingest:
-  landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
-  content_bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+  landing_bucket_name: "grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91"
+  private_content_bucket_name: &private "grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de"
+  public_content_bucket_name: &public "grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de"
   sleep_time_in_seconds: 30
-  cmr_lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
   output_files:
-    - extension: .unw_geo.zip
-      cmr_collection: UNW_GEO
+    - key: "{name}.unw_geo.browse.png"
+      bucket: *public
+      file: "{name}/filt_topophase.unw.geo.browse_small.png"
+    - key: "{name}.full_res.browse.png"
+      bucket: *public
+      file: "{name}/amplitude.geo.browse_small.png"
+    - key: "{name}.isce.log"
+      bucket: *private
+      file: "{name}/isce.log"
+    - key: "{name}.unw_geo.zip"
+      bucket: *private
       files:
-        - source: fine_interferogram.xml
-          dest: fine_interferogram.xml
-        - source: merged/filt_topophase.unw.geo
-          dest: filt_topophase.unw.geo
-        - source: merged/filt_topophase.unw.geo.hdr
-          dest: filt_topophase.unw.geo.hdr
-        - source: merged/filt_topophase.unw.geo.vrt
-          dest: filt_topophase.unw.geo.vrt
-        - source: merged/filt_topophase.unw.geo.xml
-          dest: filt_topophase.unw.geo.xml
-        - source: merged/phsig.cor.geo
-          dest: phsig.cor.geo
-        - source: merged/phsig.cor.geo.hdr
-          dest: phsig.cor.geo.hdr
-        - source: merged/phsig.cor.geo.vrt
-          dest: phsig.cor.geo.vrt
-        - source: merged/phsig.cor.geo.xml
-          dest: phsig.cor.geo.xml
-    - extension: .full_res.zip
-      cmr_collection: FULL_RES
+        - source: "{name}/fine_interferogram.xml"
+          dest: "fine_interferogram.xml"
+        - source: "{name}/merged/filt_topophase.unw.geo"
+          dest: "filt_topophase.unw.geo"
+        - source: "{name}/merged/filt_topophase.unw.geo.hdr"
+          dest: "filt_topophase.unw.geo.hdr"
+        - source: "{name}/merged/filt_topophase.unw.geo.vrt"
+          dest: "filt_topophase.unw.geo.vrt"
+        - source: "{name}/merged/filt_topophase.unw.geo.xml"
+          dest: "filt_topophase.unw.geo.xml"
+        - source: "{name}/merged/phsig.cor.geo"
+          dest: "phsig.cor.geo"
+        - source: "{name}/merged/phsig.cor.geo.hdr"
+          dest: "phsig.cor.geo.hdr"
+        - source: "{name}/merged/phsig.cor.geo.vrt"
+          dest: "phsig.cor.geo.vrt"
+        - source: "{name}/merged/phsig.cor.geo.xml"
+          dest: "phsig.cor.geo.xml"
+    - key: "{name}.full_res.zip"
+      bucket: *private
       files:
-        - source: fine_interferogram.xml
-          dest: fine_interferogram.xml
-        - source: merged/filt_topophase.flat
-          dest: filt_topophase.flat
-        - source: merged/filt_topophase.flat.hdr
-          dest: filt_topophase.flat.hdr
-        - source: merged/filt_topophase.flat.vrt
-          dest: filt_topophase.flat.vrt
-        - source: merged/filt_topophase.flat.xml
-          dest: filt_topophase.flat.xml
-        - source: merged/dem.crop
-          dest: dem.crop
-        - source: merged/dem.crop.hdr
-          dest: dem.crop.hdr
-        - source: merged/dem.crop.vrt
-          dest: dem.crop.vrt
-        - source: merged/dem.crop.xml
-          dest: dem.crop.xml
-    - extension: .5cm_browse.zip
-      files:
-        - source: fine_interferogram.xml
-          dest: fine_interferogram.xml
-        - source: unw.geo_5cm.browse.png
-          dest: unw.geo_5cm.browse.png
-        - source: unw.geo_5cm.browse_small.png
-          dest: unw.geo_5cm.browse_small.png
+        - source: "{name}/fine_interferogram.xml"
+          dest: "fine_interferogram.xml"
+        - source: "{name}/merged/filt_topophase.flat"
+          dest: "filt_topophase.flat"
+        - source: "{name}/merged/filt_topophase.flat.hdr"
+          dest: "filt_topophase.flat.hdr"
+        - source: "{name}/merged/filt_topophase.flat.vrt"
+          dest: "filt_topophase.flat.vrt"
+        - source: "{name}/merged/filt_topophase.flat.xml"
+          dest: "filt_topophase.flat.xml"
+        - source: "{name}/merged/dem.crop"
+          dest: "dem.crop"
+        - source: "{name}/merged/dem.crop.hdr"
+          dest: "dem.crop.hdr"
+        - source: "{name}/merged/dem.crop.vrt"
+          dest: "dem.crop.vrt"
+        - source: "{name}/merged/dem.crop.xml"
+          dest: "dem.crop.xml"
+  cmr:
+    lambda_arn: "arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV"
+    granules:
+      - collection: "Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)"
+        granule:
+          key: "{name}.unw_geo.zip"
+          bucket: *private
+        browse:
+          key: "{name}.unw_geo.browse.png"
+          bucket: *public
+        log:
+          key: "{name}.isce.log"
+          bucket: *private
+      - collection: "Sentinel-1 Full Resolution Wrapped Interferogram and DEM (BETA)"
+        granule:
+          key: "{name}.full_res.zip"
+          bucket: *private
+        browse:
+          key: "{name}.full_res.browse.png"
+          bucket: *public
+        log:
+          key: "{name}.isce.log"
+          bucket: *private
 
