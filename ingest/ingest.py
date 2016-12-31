@@ -97,20 +97,22 @@ def process_cmr_reporting(cmr_config):
         send_granule_to_cmr(cmr_config['lambda_arn'], granule)
 
 
+def format_config(config, object_key):
+    tokens = {'$NAME': os.path.splitext(object_key)[0]}
+    config_str = str(config)
+    for key, value in tokens.iteritems():
+        config_str = config_str.replace(key, value)
+    return yaml.load(config_str)
+
+
 def ingest_loop(ingest_config):
     while True:
         obj = get_object_to_ingest(ingest_config['landing_bucket_name'])
         if obj:
             log.info('Processing input file {0}'.format(obj.key))
-
-            # TODO clean this substitution mess up
-            name = os.path.splitext(obj.key)[0]
-            output_files = yaml.load(str(ingest_config['output_files']).replace('{name}', name))
-            cmr = yaml.load(str(ingest_config['cmr']).replace('{name}', name))
-
-            process_input_file(obj, output_files)
-            process_cmr_reporting(cmr)
-
+            formatted_config = format_config(ingest_config, obj.key)
+            process_input_file(obj, formatted_config['output_files'])
+            process_cmr_reporting(formatted_config['cmr'])
             log.info('Done processing input file {0}'.format(obj.key))
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
