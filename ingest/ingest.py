@@ -45,13 +45,13 @@ def process_output_file(output_file_config, input_zip_handle):
     log.info('Done processing output file {0}'.format(output_file_config['key']))
 
 
-def process_input_file(obj, output_file_configs):
+def process_input_file(obj, output_file_configs, master_bucket):
     obj.download_file(obj.key)
     with zipfile.ZipFile(obj.key, 'r') as input_zip_handle:
         for output_file_config in output_file_configs:
             process_output_file(output_file_config, input_zip_handle)
     # TODO figure out what to do with the original
-    upload_object(output_file_configs[0]['bucket'], obj.key)
+    upload_object(master_bucket, obj.key)
     os.remove(obj.key)
     obj.delete()
 
@@ -111,7 +111,7 @@ def ingest_loop(ingest_config):
         if obj:
             log.info('Processing input file {0}'.format(obj.key))
             formatted_config = format_config(ingest_config, obj.key)
-            process_input_file(obj, formatted_config['output_files'])
+            process_input_file(obj, formatted_config['output_files'], formatted_config['private_content_bucket_name'])
             process_cmr_reporting(formatted_config['cmr'])
             log.info('Done processing input file {0}'.format(obj.key))
         else:
