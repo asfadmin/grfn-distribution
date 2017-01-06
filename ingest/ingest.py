@@ -88,7 +88,7 @@ def get_logger(log_config):
     return asf.log.getLogger(**log_config)
 
 
-def send_granule_to_cmr(lambda_arn, payload):
+def invoke_lambda(lambda_arn, payload):
     region_name = lambda_arn.split(':')[3]
     lambda_client = boto3.client('lambda', region_name=region_name)
     lambda_client.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
@@ -96,7 +96,7 @@ def send_granule_to_cmr(lambda_arn, payload):
 
 def process_cmr_reporting(cmr_config):
     for granule in cmr_config['granules']:
-        send_granule_to_cmr(cmr_config['lambda_arn'], granule)
+        invoke_lambda(cmr_config['lambda_arn'], granule)
 
 
 def format_config(config, object_key):
