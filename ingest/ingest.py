@@ -10,6 +10,7 @@ import asf.log
 import logging
 import re
 import json
+import mimetypes
 
 log = logging.getLogger()
 
@@ -31,7 +32,8 @@ def get_bucket(bucket_name):
 
 def upload_object(bucket_name, key):
     bucket = get_bucket(bucket_name)
-    bucket.upload_file(key, key)
+    content_type = mimetypes.guess_type(key)[0]
+    bucket.upload_file(key, key, ExtraArgs={'ContentType': content_type})
 
 
 def process_output_file(output_file_config, input_zip_handle):
@@ -123,6 +125,8 @@ if __name__ == "__main__":
         options = get_command_line_options()
         config = get_config(options.config_file)
         log = get_logger(config['log'])
+        for type, ext in config['extra_mime_types'].iteritems():
+            mimetypes.add_type(type, ext)
         os.chdir(config['working_directory'])
         ingest_loop(config['ingest'])
     except:

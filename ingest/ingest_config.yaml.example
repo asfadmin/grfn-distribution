@@ -4,6 +4,9 @@ log:
 
 working_directory: /tmp/
 
+extra_mime_types:
+  text/plain: log
+
 ingest:
   landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
   private_content_bucket_name: &private grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
