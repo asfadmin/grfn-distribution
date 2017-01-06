@@ -65,7 +65,7 @@ ingest:
     lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
     granules:
       - collection: Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)
-        granule:
+        zip:
           key: $NAME.unw_geo.zip
           bucket: *private
         browse:
@@ -75,7 +75,7 @@ ingest:
           key: $NAME.isce.log
           bucket: *private
       - collection: Sentinel-1 Full Resolution Wrapped Interferogram and DEM (BETA)
-        granule:
+        zip:
           key: $NAME.full_res.zip
           bucket: *private
         browse:
