@@ -4,60 +4,87 @@ log:
 
 working_directory: /tmp/
 
+extra_mime_types:
+  text/plain: .log
+
 ingest:
   landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
-  content_bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+  private_content_bucket_name: &private grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+  public_content_bucket_name: &public grfn-d-b6710a78-8fc7-5e52-bdc3-b7ea3b691575
   sleep_time_in_seconds: 30
-  cmr_lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
   output_files:
-    - extension: .unw_geo.zip
-      cmr_collection: UNW_GEO
+    - key: $NAME.unw_geo.browse.png
+      bucket: *public
+      file: $NAME/filt_topophase.unw.geo.browse_small.png
+    - key: $NAME.full_res.browse.png
+      bucket: *public
+      file: $NAME/amplitude.geo.browse_small.png
+    - key: $NAME.isce.log
+      bucket: *private
+      file: $NAME/isce.log
+    - key: $NAME.unw_geo.zip
+      bucket: *private
       files:
-        - source: fine_interferogram.xml
+        - source: $NAME/fine_interferogram.xml
           dest: fine_interferogram.xml
-        - source: merged/filt_topophase.unw.geo
+        - source: $NAME/merged/filt_topophase.unw.geo
           dest: filt_topophase.unw.geo
-        - source: merged/filt_topophase.unw.geo.hdr
+        - source: $NAME/merged/filt_topophase.unw.geo.hdr
           dest: filt_topophase.unw.geo.hdr
-        - source: merged/filt_topophase.unw.geo.vrt
+        - source: $NAME/merged/filt_topophase.unw.geo.vrt
           dest: filt_topophase.unw.geo.vrt
-        - source: merged/filt_topophase.unw.geo.xml
+        - source: $NAME/merged/filt_topophase.unw.geo.xml
           dest: filt_topophase.unw.geo.xml
-        - source: merged/phsig.cor.geo
+        - source: $NAME/merged/phsig.cor.geo
           dest: phsig.cor.geo
-        - source: merged/phsig.cor.geo.hdr
+        - source: $NAME/merged/phsig.cor.geo.hdr
           dest: phsig.cor.geo.hdr
-        - source: merged/phsig.cor.geo.vrt
+        - source: $NAME/merged/phsig.cor.geo.vrt
           dest: phsig.cor.geo.vrt
-        - source: merged/phsig.cor.geo.xml
+        - source: $NAME/merged/phsig.cor.geo.xml
           dest: phsig.cor.geo.xml
-    - extension: .full_res.zip
-      cmr_collection: FULL_RES
+    - key: $NAME.full_res.zip
+      bucket: *private
       files:
-        - source: fine_interferogram.xml
+        - source: $NAME/fine_interferogram.xml
           dest: fine_interferogram.xml
-        - source: merged/filt_topophase.flat
+        - source: $NAME/merged/filt_topophase.flat
           dest: filt_topophase.flat
-        - source: merged/filt_topophase.flat.hdr
+        - source: $NAME/merged/filt_topophase.flat.hdr
           dest: filt_topophase.flat.hdr
-        - source: merged/filt_topophase.flat.vrt
+        - source: $NAME/merged/filt_topophase.flat.vrt
           dest: filt_topophase.flat.vrt
-        - source: merged/filt_topophase.flat.xml
+        - source: $NAME/merged/filt_topophase.flat.xml
           dest: filt_topophase.flat.xml
-        - source: merged/dem.crop
+        - source: $NAME/merged/dem.crop
           dest: dem.crop
-        - source: merged/dem.crop.hdr
+        - source: $NAME/merged/dem.crop.hdr
           dest: dem.crop.hdr
-        - source: merged/dem.crop.vrt
+        - source: $NAME/merged/dem.crop.vrt
           dest: dem.crop.vrt
-        - source: merged/dem.crop.xml
+        - source: $NAME/merged/dem.crop.xml
           dest: dem.crop.xml
-    - extension: .5cm_browse.zip
-      files:
-        - source: fine_interferogram.xml
-          dest: fine_interferogram.xml
-        - source: unw.geo_5cm.browse.png
-          dest: unw.geo_5cm.browse.png
-        - source: unw.geo_5cm.browse_small.png
-          dest: unw.geo_5cm.browse_small.png
+  cmr:
+    lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
+    granules:
+      - collection: Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)
+        zip:
+          key: $NAME.unw_geo.zip
+          bucket: *private
+        browse:
+          key: $NAME.unw_geo.browse.png
+          bucket: *public
+        log:
+          key: $NAME.isce.log
+          bucket: *private
+      - collection: Sentinel-1 Full Resolution Wrapped Interferogram and DEM (BETA)
+        zip:
+          key: $NAME.full_res.zip
+          bucket: *private
+        browse:
+          key: $NAME.full_res.browse.png
+          bucket: *public
+        log:
+          key: $NAME.isce.log
+          bucket: *private
 
