@@ -10,80 +10,50 @@ import asf.log
 import logging
 import re
 import json
+import mimetypes
 
 log = logging.getLogger()
 
 
-def get_isce_data(source_zip):
-    source_dir = os.path.splitext(source_zip)[0]
-    with zipfile.ZipFile(source_zip, 'r') as z:
-        source_file = os.path.join(source_dir, 'isce.log')
-        content = z.read(source_file)
-    m = re.search('ctx: ({.*})\n\d', content, re.DOTALL)
-    data = json.loads(m.group(1))
-    data['bounding_box'] = {}
-    pattern = 'geocode.(North|South|East|West) = (.*)$'
-    for line in content.split('\n'):
-        match = re.search(pattern, line)
-        if match is not None:
-            data['bounding_box'][match.group(1).lower()] = match.group(2)
-    return data
+def create_output_zip_file(output_file_name, input_zip_handle, files):
+    with zipfile.ZipFile(output_file_name, 'w') as output_zip_handle:
+        for f in files:
+            output_zip_handle.writestr(f['dest'], input_zip_handle.read(f['source']))
 
 
-def get_cmr_payload(source_zip, file_name, collection):
-    isce_data = get_isce_data(source_zip)
-    payload = {
-        'file_name': file_name,
-        'collection': collection,
-        'master_granule_ur': os.path.splitext(min(isce_data['master_zip_file']))[0] + '-SLC',
-        'slave_granule_ur': os.path.splitext(max(isce_data['slave_zip_file']))[0] + '-SLC',
-        'file_size': os.path.getsize(file_name),
-        'bounding_box': isce_data['bounding_box'],
-    }
-    return payload
-
-
-def send_to_cmr(lambda_arn, payload):
-    region_name = lambda_arn.split(':')[3]
-    lam = boto3.client('lambda', region_name=region_name)
-    lam.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
-
-
-def create_output_zip(source_name, dest_name, files):
-    source_dir = os.path.splitext(source_name)[0]
-    with zipfile.ZipFile(source_name, 'r') as source_zip:
-        with zipfile.ZipFile(dest_name, 'w') as dest_zip:
-            for f in files:
-                source_file = os.path.join(source_dir, f['source'])
-                dest_zip.writestr(f['dest'], source_zip.read(source_file))
+def create_output_file(output_file_name, input_zip_handle, file_name):
+    with open(output_file_name, 'w') as f:
+        f.write(input_zip_handle.read(file_name))
  
 
 def get_bucket(bucket_name):
     return boto3.resource('s3').Bucket(bucket_name)
 
 
-def upload_object(bucket_name, key, local_file_name):
+def upload_object(bucket_name, key):
     bucket = get_bucket(bucket_name)
-    bucket.upload_file(local_file_name, key)
+    content_type = mimetypes.guess_type(key)[0]
+    bucket.upload_file(key, key, ExtraArgs={'ContentType': content_type})
 
 
-def process_output_file(output_file_config, input_file_name, content_bucket_name, cmr_lambda_arn):
-    output_file_name = os.path.splitext(input_file_name)[0] + output_file_config['extension']
-    log.info('Processing output file {0}'.format(output_file_name))
-    create_output_zip(input_file_name, output_file_name, output_file_config['files'])
-    upload_object(content_bucket_name, os.path.split(output_file_name)[1], output_file_name)
-    if 'cmr_collection' in output_file_config:
-        cmr_payload = get_cmr_payload(input_file_name, output_file_name, output_file_config['cmr_collection'])
-        send_to_cmr(cmr_lambda_arn, cmr_payload)
-    os.remove(output_file_name)
-    log.info('Done processing output file {0}'.format(output_file_name))
+def process_output_file(output_file_config, input_zip_handle):
+    log.info('Processing output file {0}'.format(output_file_config['key']))
+    if 'files' in output_file_config:
+        create_output_zip_file(output_file_config['key'], input_zip_handle, output_file_config['files'])
+    else:
+        create_output_file(output_file_config['key'], input_zip_handle, output_file_config['file'])
+    upload_object(output_file_config['bucket'], output_file_config['key'])
+    os.remove(output_file_config['key'])
+    log.info('Done processing output file {0}'.format(output_file_config['key']))
 
 
-def ingest_object(obj, content_bucket_name, output_file_configs, cmr_lambda_arn):
+def process_input_file(obj, output_file_configs, master_bucket):
     obj.download_file(obj.key)
-    for output_file_config in output_file_configs:
-        process_output_file(output_file_config, obj.key, content_bucket_name, cmr_lambda_arn)
-    upload_object(content_bucket_name, obj.key, obj.key)
+    with zipfile.ZipFile(obj.key, 'r') as input_zip_handle:
+        for output_file_config in output_file_configs:
+            process_output_file(output_file_config, input_zip_handle)
+    # TODO figure out what to do with the original
+    upload_object(master_bucket, obj.key)
     os.remove(obj.key)
     obj.delete()
 
@@ -115,7 +85,26 @@ def get_command_line_options():
 
 
 def get_logger(log_config):
-    return asf.log.getLogger(screen=log_config['screen'], verbose=log_config['verbose'])
+    return asf.log.getLogger(**log_config)
+
+
+def invoke_lambda(lambda_arn, payload):
+    region_name = lambda_arn.split(':')[3]
+    lambda_client = boto3.client('lambda', region_name=region_name)
+    lambda_client.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
+
+
+def process_cmr_reporting(cmr_config):
+    for granule in cmr_config['granules']:
+        invoke_lambda(cmr_config['lambda_arn'], granule)
+
+
+def format_config(config, object_key):
+    tokens = {'$NAME': os.path.splitext(object_key)[0]}
+    config_str = str(config)
+    for key, value in tokens.iteritems():
+        config_str = config_str.replace(key, value)
+    return yaml.load(config_str)
 
 
 def ingest_loop(ingest_config):
@@ -123,7 +112,9 @@ def ingest_loop(ingest_config):
         obj = get_object_to_ingest(ingest_config['landing_bucket_name'])
         if obj:
             log.info('Processing input file {0}'.format(obj.key))
-            ingest_object(obj, ingest_config['content_bucket_name'], ingest_config['output_files'], ingest_config['cmr_lambda_arn'])
+            formatted_config = format_config(ingest_config, obj.key)
+            process_input_file(obj, formatted_config['output_files'], formatted_config['private_content_bucket_name'])
+            process_cmr_reporting(formatted_config['cmr'])
             log.info('Done processing input file {0}'.format(obj.key))
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
@@ -134,6 +125,8 @@ if __name__ == "__main__":
         options = get_command_line_options()
         config = get_config(options.config_file)
         log = get_logger(config['log'])
+        for type, ext in config['extra_mime_types'].iteritems():
+            mimetypes.add_type(type, ext)
         os.chdir(config['working_directory'])
         ingest_loop(config['ingest'])
     except:
