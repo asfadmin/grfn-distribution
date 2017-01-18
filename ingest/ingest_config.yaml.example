@@ -27,6 +27,10 @@ ingest:
       files:
         - source: $NAME/fine_interferogram.xml
           dest: fine_interferogram.xml
+        - source: $NAME/filt_topophase.unw.geo.browse_small.png
+          dest: filt_topophase.unw.geo.browse_small.png
+        - source: $NAME/filt_topophase.unw.geo.browse.png
+          dest: filt_topophase.unw.geo.browse.png
         - source: $NAME/merged/filt_topophase.unw.geo
           dest: filt_topophase.unw.geo
         - source: $NAME/merged/filt_topophase.unw.geo.hdr
@@ -48,6 +52,10 @@ ingest:
       files:
         - source: $NAME/fine_interferogram.xml
           dest: fine_interferogram.xml
+        - source: $NAME/amplitude.geo.browse_small.png
+          dest: amplitude.geo.browse_small.png
+        - source: $NAME/amplitude.geo.browse.png
+          dest: amplitude.geo.browse.png
         - source: $NAME/merged/filt_topophase.flat
           dest: filt_topophase.flat
         - source: $NAME/merged/filt_topophase.flat.hdr
