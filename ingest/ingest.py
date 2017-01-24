@@ -48,20 +48,38 @@ def process_output_file(output_file_config, input_zip_handle):
 
 
 def process_input_file(obj, output_file_configs, master_bucket):
-    obj.download_file(obj.key)
-    with zipfile.ZipFile(obj.key, 'r') as input_zip_handle:
+    unprefixed_name = os.path.basename(obj.key)
+    log.info("saving remote file to "+unprefixed_name)
+    obj.download_file(unprefixed_name)
+    with zipfile.ZipFile(unprefixed_name, 'r') as input_zip_handle:
         for output_file_config in output_file_configs:
             process_output_file(output_file_config, input_zip_handle)
     # TODO figure out what to do with the original
-    upload_object(master_bucket, obj.key)
-    os.remove(obj.key)
+    upload_object(master_bucket, unprefixed_name)
+    os.remove(unprefixed_name)
     obj.delete()
 
 
-def get_object_to_ingest(landing_bucket_name):
+def get_object_from_queue(ingest_queue_name):
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName=ingest_queue_name)
+
+    for message in queue.receive_messages():
+        message_body = json.loads(message.body)
+        queue_data = message_body['Records'][0]['s3']
+        log.info("Processing queue ingest for {0}/{1}".format(queue_data['bucket']['name'], queue_data['object']['key']))
+        print message.receipt_handle
+        return boto3.resource('s3').Object(queue_data['bucket']['name'], queue_data['object']['key']), message
+
+    return None, None
+
+def get_object_from_bucket(landing_bucket_name, suffixes):
     landing_bucket = get_bucket(landing_bucket_name)
-    for object_summary in landing_bucket.objects.limit(1):
-        return object_summary.Object()
+    for object_summary in landing_bucket.objects.all():
+        for suffix in suffixes:
+            if object_summary.Object().key.endswith(suffix):
+                log.info("Found {0}: {1}".format(suffix, object_summary.Object().key))
+                return object_summary.Object()
     return None
 
 
@@ -109,13 +127,25 @@ def format_config(config, object_key):
 
 def ingest_loop(ingest_config):
     while True:
-        obj = get_object_to_ingest(ingest_config['landing_bucket_name'])
+        msg = None
+        if 'ingest_queue_name' in ingest_config:
+           obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
+        elif 'landing_bucket_name' in ingest_config:
+           obj = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffix'])
+        else:
+           log.fatal('Could not divine input source, queue or landing bucket')
+           time.sleep(ingest_config['sleep_time_in_seconds'])
+           continue 
+      
         if obj:
-            log.info('Processing input file {0}'.format(obj.key))
-            formatted_config = format_config(ingest_config, obj.key)
+            unprefixed_name = os.path.basename(obj.key)
+            log.info('Processing input file {0}'.format(unprefixed_name))
+            formatted_config = format_config(ingest_config, unprefixed_name)
             process_input_file(obj, formatted_config['output_files'], formatted_config['private_content_bucket_name'])
             process_cmr_reporting(formatted_config['cmr'])
-            log.info('Done processing input file {0}'.format(obj.key))
+            log.info('Done processing input file {0}'.format(unprefixed_name))
+            if msg:
+                msg.delete()
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
