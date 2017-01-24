@@ -3,6 +3,7 @@
 import boto3
 import zipfile
 import os
+import sys
 import time
 import yaml
 import argparse
@@ -14,6 +15,8 @@ import mimetypes
 
 log = logging.getLogger()
 
+class SetupError(Exception):
+    pass
 
 def create_output_zip_file(output_file_name, input_zip_handle, files):
     with zipfile.ZipFile(output_file_name, 'w') as output_zip_handle:
@@ -68,7 +71,6 @@ def get_object_from_queue(ingest_queue_name):
         message_body = json.loads(message.body)
         queue_data = message_body['Records'][0]['s3']
         log.info("Processing queue ingest for {0}/{1}".format(queue_data['bucket']['name'], queue_data['object']['key']))
-        print message.receipt_handle
         return boto3.resource('s3').Object(queue_data['bucket']['name'], queue_data['object']['key']), message
 
     return None, None
@@ -133,9 +135,8 @@ def ingest_loop(ingest_config):
         elif 'landing_bucket_name' in ingest_config:
            obj = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffix'])
         else:
-           log.fatal('Could not divine input source, queue or landing bucket')
-           time.sleep(ingest_config['sleep_time_in_seconds'])
-           continue 
+           log.fatal('Could not divine input source, no queue or landing bucket specified.')
+           raise SetupError("No Input source")
       
         if obj:
             unprefixed_name = os.path.basename(obj.key)
@@ -159,6 +160,8 @@ if __name__ == "__main__":
             mimetypes.add_type(type, ext)
         os.chdir(config['working_directory'])
         ingest_loop(config['ingest'])
+    except SetupError as e:
+        log.fatal("Cannot procede from configuration error: {0}".format(e))
     except:
         log.exception('Unhandled exception!')
         raise
