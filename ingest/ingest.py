@@ -3,7 +3,6 @@
 import boto3
 import zipfile
 import os
-import sys
 import time
 import yaml
 import argparse
