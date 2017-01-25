@@ -3,6 +3,7 @@ log:
   verbose: no
 
 working_directory: /tmp/
+aws_region: us-west-2
 
 extra_mime_types:
   text/plain: .log
@@ -75,7 +76,7 @@ ingest:
         - source: $NAME/merged/dem.crop.xml
           dest: dem.crop.xml
   cmr:
-    lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
+    lambda_function: function:grfn-echo10-construction:DEV
     granules:
       - collection: Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)
         zip:
