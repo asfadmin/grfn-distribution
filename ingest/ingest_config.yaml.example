@@ -76,7 +76,7 @@ ingest:
         - source: $NAME/merged/dem.crop.xml
           dest: dem.crop.xml
   cmr:
-    lambda_function: function:grfn-echo10-construction:DEV
+    lambda_function: grfn-echo10-construction:DEV
     granules:
       - collection: Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)
         zip:
