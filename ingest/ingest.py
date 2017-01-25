@@ -107,15 +107,14 @@ def get_logger(log_config):
     return asf.log.getLogger(**log_config)
 
 
-def invoke_lambda(lambda_arn, payload):
-    region_name = lambda_arn.split(':')[3]
-    lambda_client = boto3.client('lambda', region_name=region_name)
-    lambda_client.invoke(FunctionName=lambda_arn, InvocationType='Event', Payload=json.dumps(payload))
+def invoke_lambda(lambda_function, payload):
+    lambda_client = boto3.client('lambda')
+    lambda_client.invoke(FunctionName=lambda_function, InvocationType='Event', Payload=json.dumps(payload))
 
 
 def process_cmr_reporting(cmr_config):
     for granule in cmr_config['granules']:
-        invoke_lambda(cmr_config['lambda_arn'], granule)
+        invoke_lambda(cmr_config['lambda_function'], granule)
 
 
 def format_config(config, object_key):
@@ -149,14 +148,20 @@ def ingest_loop(ingest_config):
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
 
+def setup():
+    options = get_command_line_options()
+    config = get_config(options.config_file)
+    log = get_logger(config['log'])
+    boto3.setup_default_session(region_name=config['aws_region'])
+    for type, ext in config['extra_mime_types'].iteritems():
+        mimetypes.add_type(type, ext)
+    os.chdir(config['working_directory'])
+    return config
+
+
 if __name__ == "__main__":
     try:
-        options = get_command_line_options()
-        config = get_config(options.config_file)
-        log = get_logger(config['log'])
-        for type, ext in config['extra_mime_types'].iteritems():
-            mimetypes.add_type(type, ext)
-        os.chdir(config['working_directory'])
+        config = setup()
         ingest_loop(config['ingest'])
     except SetupError as e:
         log.fatal("Cannot proceed from configuration error: {0}".format(e))
