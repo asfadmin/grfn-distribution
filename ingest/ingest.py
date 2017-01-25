@@ -148,15 +148,20 @@ def ingest_loop(ingest_config):
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
 
+def setup():
+    options = get_command_line_options()
+    config = get_config(options.config_file)
+    log = get_logger(config['log'])
+    boto3.setup_default_session(region_name=config['aws_region'])
+    for type, ext in config['extra_mime_types'].iteritems():
+        mimetypes.add_type(type, ext)
+    os.chdir(config['working_directory'])
+    return config
+
+
 if __name__ == "__main__":
     try:
-        options = get_command_line_options()
-        config = get_config(options.config_file)
-        log = get_logger(config['log'])
-        boto3.setup_default_session(config['aws_region'])
-        for type, ext in config['extra_mime_types'].iteritems():
-            mimetypes.add_type(type, ext)
-        os.chdir(config['working_directory'])
+        config = setup()
         ingest_loop(config['ingest'])
     except SetupError as e:
         log.fatal("Cannot proceed from configuration error: {0}".format(e))
