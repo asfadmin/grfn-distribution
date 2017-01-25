@@ -59,7 +59,6 @@ def process_input_file(obj, output_file_configs, master_bucket):
     # TODO figure out what to do with the original
     upload_object(master_bucket, unprefixed_name)
     os.remove(unprefixed_name)
-    obj.delete()
 
 
 def get_object_from_queue(ingest_queue_name):
@@ -141,9 +140,10 @@ def ingest_loop(ingest_config):
             formatted_config = format_config(ingest_config, unprefixed_name)
             process_input_file(obj, formatted_config['output_files'], formatted_config['private_content_bucket_name'])
             process_cmr_reporting(formatted_config['cmr'])
-            log.info('Done processing input file {0}'.format(unprefixed_name))
             if msg:
                 msg.delete()
+            obj.delete()
+            log.info('Done processing input file {0}'.format(unprefixed_name))
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
