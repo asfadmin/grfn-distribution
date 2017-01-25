@@ -80,8 +80,8 @@ def get_object_from_bucket(landing_bucket_name, suffixes):
         for suffix in suffixes:
             if object_summary.Object().key.endswith(suffix):
                 log.info("Found {0}: {1}".format(suffix, object_summary.Object().key))
-                return object_summary.Object()
-    return None
+                return object_summary.Object(), None
+    return None, None
 
 
 def get_config(config_file_name):
@@ -128,11 +128,10 @@ def format_config(config, object_key):
 
 def ingest_loop(ingest_config):
     while True:
-        msg = None
         if 'ingest_queue_name' in ingest_config:
            obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
         elif 'landing_bucket_name' in ingest_config:
-           obj = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffix'])
+           obj,msg = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffixes'])
         else:
            log.fatal('Could not divine input source, no queue or landing bucket specified.')
            raise SetupError("No Input source")
@@ -160,7 +159,7 @@ if __name__ == "__main__":
         os.chdir(config['working_directory'])
         ingest_loop(config['ingest'])
     except SetupError as e:
-        log.fatal("Cannot procede from configuration error: {0}".format(e))
+        log.fatal("Cannot proceed from configuration error: {0}".format(e))
     except:
         log.exception('Unhandled exception!')
         raise
