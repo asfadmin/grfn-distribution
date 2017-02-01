@@ -9,7 +9,7 @@ import re
 lambda_arn = 'arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV'
 private_bucket = 'grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de'
 public_bucket = 'grfn-d-b6710a78-8fc7-5e52-bdc3-b7ea3b691575'
-sleep_time_in_seconds = .5
+sleep_time_in_seconds = 2
 
 # Ususally the same as Private bucket, set to False to prevent bucket-based reprocessing
 reprocess_bucket = private_bucket
