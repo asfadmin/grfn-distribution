@@ -98,4 +98,14 @@ ingest:
         log:
           key: $NAME.isce.log
           bucket: *private
+      - collection: Sentinel-1 All Interferometric Products (BETA)
+        zip:
+          key: $NAME.zip
+          bucket: *private
+        browse:
+          key: $NAME.unw_geo.browse.png
+          bucket: *public
+        log:
+          key: $NAME.isce.log
+          bucket: *private
 
