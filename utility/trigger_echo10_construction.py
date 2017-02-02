@@ -9,11 +9,15 @@ import re
 lambda_arn = 'arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV'
 private_bucket = 'grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de'
 public_bucket = 'grfn-d-b6710a78-8fc7-5e52-bdc3-b7ea3b691575'
-sleep_time_in_seconds = 2
+sleep_time_in_seconds = 20
+pause_every_x_items = None  # None to disable
 
 # Ususally the same as Private bucket, set to False to prevent bucket-based reprocessing
 reprocess_bucket = private_bucket
 reprocess_product_regex = "(?P<product_name>S1-\w+_\w+_\w+_\w+-\w+_\w+-\w+-v\d+\.\d+\.\d+)\.zip"
+
+# Which types to send to CMR
+process_cmr_for = { 'unw_geo': False, 'full_res': False, 'all_prods': True}
 
 granules = [
 'S1-IFG_STCM1S1_TN035_20161208T020720-20170101T020747_s2-resorb-v1.0.1',
@@ -102,15 +106,23 @@ if __name__ == "__main__":
     if reprocess_bucket is not False:
         granules += get_products_from_bucket( reprocess_bucket, reprocess_product_regex )
 
+    cnt = 0
     for granule in granules:
         print("Submitting {0} to CMR".format(granule))
-        payload = unw_geo_payload(granule)
-        invoke_lambda(lambda_arn, payload)
-        payload = full_res_payload(granule)
-        invoke_lambda(lambda_arn, payload)
-        payload = all_products_payload(granule)
-        invoke_lambda(lambda_arn, payload)
+        if process_cmr_for['unw_geo']:
+            payload = unw_geo_payload(granule)
+            invoke_lambda(lambda_arn, payload)
+        if process_cmr_for['full_res']:
+            payload = full_res_payload(granule)
+            invoke_lambda(lambda_arn, payload)
+        if process_cmr_for['all_prods']:
+            payload = all_products_payload(granule)
+            invoke_lambda(lambda_arn, payload)
         time.sleep(sleep_time_in_seconds)
+ 
+        cnt += 1
+        if pause_every_x_items and (cnt % pause_every_x_items == 0):
+            raw_input("Press Enter to continue...")
 
     print ("Submitted {0} products to CMR".format(len(granules)))
 
