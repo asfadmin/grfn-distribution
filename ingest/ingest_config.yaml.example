@@ -3,12 +3,15 @@ log:
   verbose: no
 
 working_directory: /tmp/
+aws_region: us-west-2
 
 extra_mime_types:
   text/plain: .log
 
 ingest:
+  ingest_queue_name: GRFN-Ingest-Dev
   landing_bucket_name: grfn-d-a4d38f59-5e57-590c-a2be-58640db02d91
+  landing_bucket_search_suffixes: ['zip']
   private_content_bucket_name: &private grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
   public_content_bucket_name: &public grfn-d-b6710a78-8fc7-5e52-bdc3-b7ea3b691575
   sleep_time_in_seconds: 30
@@ -73,7 +76,7 @@ ingest:
         - source: $NAME/merged/dem.crop.xml
           dest: dem.crop.xml
   cmr:
-    lambda_arn: arn:aws:lambda:us-west-2:765666652335:function:grfn-echo10-construction:DEV
+    lambda_function: grfn-echo10-construction:DEV
     granules:
       - collection: Sentinel-1 Unwrapped Interferogram and Coherence Map (BETA)
         zip:
@@ -91,6 +94,16 @@ ingest:
           bucket: *private
         browse:
           key: $NAME.full_res.browse.png
+          bucket: *public
+        log:
+          key: $NAME.isce.log
+          bucket: *private
+      - collection: Sentinel-1 All Interferometric Products (BETA)
+        zip:
+          key: $NAME.zip
+          bucket: *private
+        browse:
+          key: $NAME.unw_geo.browse.png
           bucket: *public
         log:
           key: $NAME.isce.log
