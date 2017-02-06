@@ -11,6 +11,7 @@ import logging
 import re
 import json
 import mimetypes
+import tempfile, shutil
 
 log = logging.getLogger()
 
@@ -135,6 +136,10 @@ def ingest_loop(ingest_config):
            raise SetupError("No Input source")
       
         if obj:
+            process_dir = tempfile.mkdtemp(prefix='GRFN_', dir=config['working_directory'])
+            log.info('Processing in temp dir: {0}'.format(process_dir))
+            os.chdir(process_dir)
+
             unprefixed_name = os.path.basename(obj.key)
             log.info('Processing input file {0}'.format(unprefixed_name))
             formatted_config = format_config(ingest_config, unprefixed_name)
@@ -144,6 +149,10 @@ def ingest_loop(ingest_config):
                 msg.delete()
             obj.delete()
             log.info('Done processing input file {0}'.format(unprefixed_name))
+
+            os.chdir(config['working_directory'])
+            shutil.rmtree(process_dir)
+
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
