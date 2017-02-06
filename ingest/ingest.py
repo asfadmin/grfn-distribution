@@ -125,15 +125,16 @@ def format_config(config, object_key):
     return yaml.load(config_str)
 
 
-def ingest_loop(ingest_config):
-    while True:
+def ingest_item(ingest_config):
+    process_dir = None
+    try: 
         if 'ingest_queue_name' in ingest_config:
-           obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
+            obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
         elif 'landing_bucket_name' in ingest_config:
-           obj,msg = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffixes'])
+            obj,msg = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffixes'])
         else:
-           log.fatal('Could not divine input source, no queue or landing bucket specified.')
-           raise SetupError("No Input source")
+            log.fatal('Could not divine input source, no queue or landing bucket specified.')
+            raise SetupError("No Input source")
       
         if obj:
             process_dir = tempfile.mkdtemp(prefix='GRFN_', dir=config['working_directory'])
@@ -150,12 +151,28 @@ def ingest_loop(ingest_config):
             obj.delete()
             log.info('Done processing input file {0}'.format(unprefixed_name))
 
-            os.chdir(config['working_directory'])
-            shutil.rmtree(process_dir)
-
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
+    except zipfile.BadZipfile as e:
+        log.warn("Zip file {0} appears to be corrupt. Moving on ...".format(obj.key))
+    except zipfile.LargeZipFile as e:
+        log.warn("Encountered zip file, {0}, too large to process right now. Moving on ...".format(obj.key))
+    except Exception as e:
+        log.exception('Unhandled exception: {0}'.format(e))
+        log.warn("Failed to process job. Moving on ...");
+
+    if process_dir:
+       try: 
+          os.chdir(config['working_directory'])
+          shutil.rmtree(process_dir)
+       except Exception as e:
+          log.warn("Unable to clean up temporary processing directory: {0}".format(process_dir))
+          log.exception(e)
+
+def ingest_loop(ingest_config):
+    while True:
+       ingest_item(ingest_config)
 
 def setup():
     options = get_command_line_options()
@@ -171,10 +188,12 @@ def setup():
 if __name__ == "__main__":
     try:
         config = setup()
-        ingest_loop(config['ingest'])
     except SetupError as e:
-        log.fatal("Cannot proceed from configuration error: {0}".format(e))
+        log.error("Cannot proceed from configuration error: {0}".format(e))
+        raise
     except:
         log.exception('Unhandled exception!')
         raise
+
+    ingest_loop(config['ingest'])
 
