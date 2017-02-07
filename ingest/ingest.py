@@ -12,6 +12,7 @@ import re
 import json
 import mimetypes
 import tempfile, shutil
+import sys
 
 log = logging.getLogger()
 
@@ -127,6 +128,7 @@ def format_config(config, object_key):
 
 def ingest_item(ingest_config):
     process_dir = None
+    success_flag = False
     try: 
         if 'ingest_queue_name' in ingest_config:
             obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
@@ -137,7 +139,7 @@ def ingest_item(ingest_config):
             raise SetupError("No Input source")
       
         if obj:
-            process_dir = tempfile.mkdtemp(prefix='GRFN_', dir=config['working_directory'])
+            process_dir = tempfile.mkdtemp(prefix='GRFN_', dir=ingest_config['working_directory'])
             log.info('Processing in temp dir: {0}'.format(process_dir))
             os.chdir(process_dir)
 
@@ -150,6 +152,7 @@ def ingest_item(ingest_config):
                 msg.delete()
             obj.delete()
             log.info('Done processing input file {0}'.format(unprefixed_name))
+            success_flag = True
 
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
@@ -164,15 +167,25 @@ def ingest_item(ingest_config):
 
     if process_dir:
        try: 
-          os.chdir(config['working_directory'])
+          os.chdir(ingest_config['working_directory'])
           shutil.rmtree(process_dir)
        except Exception as e:
           log.warn("Unable to clean up temporary processing directory: {0}".format(process_dir))
           log.exception(e)
 
+    return success_flag
+
 def ingest_loop(ingest_config):
+    error_count = 0 
     while True:
-       ingest_item(ingest_config)
+       if ingest_item(ingest_config):
+           error_count = 0
+       else: 
+           error_count += 1
+   
+       if error_count >= ingest_config['max_repeat_errors']:
+           log.error("Hit max number of repeat failures: {0}, exiting for health reason".format(error_count));
+           return
 
 def setup():
     options = get_command_line_options()
@@ -181,7 +194,6 @@ def setup():
     boto3.setup_default_session(region_name=config['aws_region'])
     for type, ext in config['extra_mime_types'].iteritems():
         mimetypes.add_type(type, ext)
-    os.chdir(config['working_directory'])
     return config
 
 
