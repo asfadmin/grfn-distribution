@@ -11,6 +11,8 @@ import logging
 import re
 import json
 import mimetypes
+import tempfile, shutil
+import sys
 
 log = logging.getLogger()
 
@@ -124,17 +126,23 @@ def format_config(config, object_key):
     return yaml.load(config_str)
 
 
-def ingest_loop(ingest_config):
-    while True:
+def ingest_item(ingest_config):
+    process_dir = None
+    success_flag = False
+    try: 
         if 'ingest_queue_name' in ingest_config:
-           obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
+            obj,msg = get_object_from_queue(ingest_config['ingest_queue_name'])
         elif 'landing_bucket_name' in ingest_config:
-           obj,msg = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffixes'])
+            obj,msg = get_object_from_bucket(ingest_config['landing_bucket_name'], ingest_config['landing_bucket_search_suffixes'])
         else:
-           log.fatal('Could not divine input source, no queue or landing bucket specified.')
-           raise SetupError("No Input source")
+            log.fatal('Could not divine input source, no queue or landing bucket specified.')
+            raise SetupError("No Input source")
       
         if obj:
+            process_dir = tempfile.mkdtemp(prefix='GRFN_', dir=ingest_config['working_directory'])
+            log.info('Processing in temp dir: {0}'.format(process_dir))
+            os.chdir(process_dir)
+
             unprefixed_name = os.path.basename(obj.key)
             log.info('Processing input file {0}'.format(unprefixed_name))
             formatted_config = format_config(ingest_config, unprefixed_name)
@@ -144,9 +152,41 @@ def ingest_loop(ingest_config):
                 msg.delete()
             obj.delete()
             log.info('Done processing input file {0}'.format(unprefixed_name))
+
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
 
+        success_flag = True
+
+    except zipfile.BadZipfile as e:
+        log.warn("Zip file {0} appears to be corrupt. Moving on ...".format(obj.key))
+    except zipfile.LargeZipFile as e:
+        log.warn("Encountered zip file, {0}, too large to process right now. Moving on ...".format(obj.key))
+    except Exception as e:
+        log.exception('Unhandled exception: {0}'.format(e))
+        log.warn("Failed to process job. Moving on ...");
+
+    if process_dir:
+       try: 
+          os.chdir(ingest_config['working_directory'])
+          shutil.rmtree(process_dir)
+       except Exception as e:
+          log.warn("Unable to clean up temporary processing directory: {0}".format(process_dir))
+          log.exception(e)
+
+    return success_flag
+
+def ingest_loop(ingest_config):
+    error_count = 0 
+    while True:
+       if ingest_item(ingest_config):
+           error_count = 0
+       else: 
+           error_count += 1
+   
+       if error_count >= ingest_config['max_repeat_errors']:
+           log.error("Hit max number of repeat failures: {0}, exiting for health reason".format(error_count));
+           return
 
 def setup():
     options = get_command_line_options()
@@ -155,17 +195,18 @@ def setup():
     boto3.setup_default_session(region_name=config['aws_region'])
     for type, ext in config['extra_mime_types'].iteritems():
         mimetypes.add_type(type, ext)
-    os.chdir(config['working_directory'])
     return config
 
 
 if __name__ == "__main__":
     try:
         config = setup()
-        ingest_loop(config['ingest'])
     except SetupError as e:
-        log.fatal("Cannot proceed from configuration error: {0}".format(e))
+        log.error("Cannot proceed from configuration error: {0}".format(e))
+        raise
     except:
         log.exception('Unhandled exception!')
         raise
+
+    ingest_loop(config['ingest'])
 
