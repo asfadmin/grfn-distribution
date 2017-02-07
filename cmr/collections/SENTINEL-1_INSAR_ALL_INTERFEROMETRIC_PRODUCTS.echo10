@@ -765,6 +765,12 @@
                     <EastBoundingCoordinate>-119.0944</EastBoundingCoordinate>
                     <SouthBoundingCoordinate>34.68611</SouthBoundingCoordinate>
                 </BoundingRectangle>
+                <BoundingRectangle>
+                    <WestBoundingCoordinate>-104.86</WestBoundingCoordinate>
+                    <NorthBoundingCoordinate>32.60</NorthBoundingCoordinate>
+                    <EastBoundingCoordinate>-103.60</EastBoundingCoordinate>
+                    <SouthBoundingCoordinate>31.94</SouthBoundingCoordinate>
+                </BoundingRectangle>
             </Geometry>
         </HorizontalSpatialDomain>
         <GranuleSpatialRepresentation>GEODETIC</GranuleSpatialRepresentation>
