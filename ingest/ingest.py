@@ -152,10 +152,11 @@ def ingest_item(ingest_config):
                 msg.delete()
             obj.delete()
             log.info('Done processing input file {0}'.format(unprefixed_name))
-            success_flag = True
 
         else:
             time.sleep(ingest_config['sleep_time_in_seconds'])
+
+        success_flag = True
 
     except zipfile.BadZipfile as e:
         log.warn("Zip file {0} appears to be corrupt. Moving on ...".format(obj.key))
