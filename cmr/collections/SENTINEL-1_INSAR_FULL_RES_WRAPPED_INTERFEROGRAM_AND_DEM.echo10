@@ -765,8 +765,19 @@
                     <EastBoundingCoordinate>-119.0944</EastBoundingCoordinate>
                     <SouthBoundingCoordinate>34.68611</SouthBoundingCoordinate>
                 </BoundingRectangle>
+                <BoundingRectangle>
+                    <WestBoundingCoordinate>-104.86</WestBoundingCoordinate>
+                    <NorthBoundingCoordinate>32.60</NorthBoundingCoordinate>
+                    <EastBoundingCoordinate>-103.60</EastBoundingCoordinate>
+                    <SouthBoundingCoordinate>31.94</SouthBoundingCoordinate>
+                </BoundingRectangle>
             </Geometry>
         </HorizontalSpatialDomain>
         <GranuleSpatialRepresentation>GEODETIC</GranuleSpatialRepresentation>
     </Spatial>
+    <AssociatedBrowseImageUrls>
+        <ProviderBrowseUrl>
+            <URL>https://s3-us-west-2.amazonaws.com/grfn-static-5e87bf47-a5ae-56b0-9094-62ac7ec40882/SENTINEL-1_INSAR_FULL_RES_WRAPPED_INTERFEROGRAM_AND_DEM_browse.png</URL>
+        </ProviderBrowseUrl>
+    </AssociatedBrowseImageUrls>
 </Collection>
