@@ -25,9 +25,9 @@ def download_redirect(file_name):
 
     available = True
     if obj.storage_class == 'GLACIER':
-        if obj.restore is None or 'ongoing-request="true"' obj.restore:
+        if obj.restore is None or 'ongoing-request="true"' in obj.restore:
             available = False
-        if obj.restore is None or 'ongoing-request="false"' obj.restore:
+        if obj.restore is None or 'ongoing-request="false"' in obj.restore:
             restore_object(obj)
 
     if available:
@@ -35,7 +35,7 @@ def download_redirect(file_name):
         signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
         return redirect(signed_url)
     else:
-        return redirect('https://grfn-door-dev.asf.alaska.edu/409.html', code=409)
+        return render_template('notavailable.html'), 409
 
 
 def restore_object(obj):
@@ -46,7 +46,7 @@ def restore_object(obj):
                 'Tier': 'Expedited', # TODO move to config
             },
         }
-    )
+    ) # TODO handle error when expedited retrievals are not available
 
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
