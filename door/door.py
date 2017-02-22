@@ -1,8 +1,9 @@
 import boto3
 import yaml
 import os
-from flask import Flask, g, redirect, render_template, request
-    
+from flask import Flask, g, redirect, render_template, request, abort
+from botocore.exceptions import ClientError
+ 
 app = Flask(__name__)
 
 
@@ -20,30 +21,56 @@ def show_index():
 
 @app.route('/download/<file_name>')
 def download_redirect(file_name):
-    s3 = boto3.resource('s3')
-    obj = s3.Object(app.config['bucket_name'], file_name) # TODO handle error when file not found
 
-    available = True
-    if obj.storage_class == 'GLACIER':
-        if obj.restore is None or 'ongoing-request="true"' in obj.restore:
-            available = False
-        if obj.restore is None or 'ongoing-request="false"' in obj.restore:
-            restore_object(obj)
+    try:
+        obj = get_object(app.config['bucket_name'], file_name)
+    except ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            abort(404)
+        raise
+
+    available = process_availability(obj, app.config['retrieval_lifetime_in_days'], app.config['retrieval_tier'])
 
     if available:
-        signed_url = get_link(app.config['bucket_name'], file_name, app.config['expire_time_in_seconds'])
+        signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
         return redirect(signed_url)
     else:
         return render_template('notavailable.html'), 409
 
 
-def restore_object(obj):
+def get_object(bucket, key):
+    s3 = boto3.resource('s3')
+    obj = s3.Object(bucket, key)
+    obj.load()
+    return obj
+
+
+def process_availability(obj, days, tier):
+    available = True
+    if obj.storage_class == 'GLACIER':
+        restore_status = get_restore_status(obj.restore)
+        if restore_status in ['not_available', 'in_progress']:
+            available = False
+        if restore_status in ['not_available', 'available']:
+            restore_object(obj, days, tier)
+    return available
+
+
+def get_restore_status(restore):
+    if restore is None:
+        return 'not_available'
+    if 'ongoing-request="true"' in restore:
+        return 'in_progress'
+    return 'available'
+
+
+def restore_object(obj, days, tier):
     obj.restore_object(
         RestoreRequest = {
-            'Days': 1, #TODO move to config
+            'Days': days,
             'GlacierJobParameters': {
-                'Tier': 'Expedited', # TODO move to config
+                'Tier': tier,
             },
         }
     ) # TODO handle error when expedited retrievals are not available
