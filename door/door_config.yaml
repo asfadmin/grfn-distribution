@@ -1,4 +1,5 @@
 bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
 expire_time_in_seconds: 15
-retrieval_lifetime_in_days: 1
-retrieval_tier: Expedited
+glacier_retrieval:
+  days: 1
+  tier: Expedited

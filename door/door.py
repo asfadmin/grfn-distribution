@@ -25,18 +25,18 @@ def download_redirect(file_name):
     try:
         obj = get_object(app.config['bucket_name'], file_name)
     except ClientError as e:
-        if e.response['Error']['Code'] == "404":
+        if e.response['Error']['Code'] == '404':
             abort(404)
         raise
 
-    available = process_availability(obj, app.config['retrieval_lifetime_in_days'], app.config['retrieval_tier'])
+    available = process_availability(obj, app.config['glacier_retrieval'])
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
         return redirect(signed_url)
     else:
-        return render_template('notavailable.html'), 409
+        return render_template('notavailable.html'), 503
 
 
 def get_object(bucket, key):
@@ -46,18 +46,18 @@ def get_object(bucket, key):
     return obj
 
 
-def process_availability(obj, days, tier):
+def process_availability(obj, retrieval_opts):
     available = True
     if obj.storage_class == 'GLACIER':
-        restore_status = get_restore_status(obj.restore)
+        restore_status = translate_restore_status(obj.restore)
         if restore_status in ['not_available', 'in_progress']:
             available = False
         if restore_status in ['not_available', 'available']:
-            restore_object(obj, days, tier)
+            restore_object(obj, **retrieval_opts)
     return available
 
 
-def get_restore_status(restore):
+def translate_restore_status(restore):
     if restore is None:
         return 'not_available'
     if 'ongoing-request="true"' in restore:
