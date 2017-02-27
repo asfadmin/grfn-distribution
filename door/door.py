@@ -33,10 +33,17 @@ def download_redirect(file_name):
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
-        signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
+        if request.environ.get('URS_USERID'):
+            signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
+        else:
+            signed_url = signed_url + "&userid=" + os.environ['URS_USERID']
         return redirect(signed_url)
+    elif available is None:
+        return render_template('notavailable.html'), 202
+    elif available is False:
+        return render_template('defrosterror.html'), 503
     else:
-        return render_template('notavailable.html'), 503
+        raise ValueError('Encounted unexpected Download status')
 
 
 def get_object(bucket, key):
@@ -51,9 +58,10 @@ def process_availability(obj, retrieval_opts):
     if obj.storage_class == 'GLACIER':
         restore_status = translate_restore_status(obj.restore)
         if restore_status in ['not_available', 'in_progress']:
-            available = False
+            available = None
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            restore_object(obj, **retrieval_opts)
+            available = restore_object(obj, **retrieval_opts)
+                
     return available
 
 
@@ -66,14 +74,23 @@ def translate_restore_status(restore):
 
 
 def restore_object(obj, days, tier):
-    obj.restore_object(
-        RestoreRequest = {
-            'Days': days,
-            'GlacierJobParameters': {
-                'Tier': tier,
-            },
-        }
-    ) # TODO handle error when expedited retrievals are not available
+    try:
+        obj.restore_object(
+            RestoreRequest = {
+                'Days': days,
+                'GlacierJobParameters': {
+                    'Tier': tier,
+                },
+            }
+        ) 
+        
+    except ClientError as e:
+        if e.response['Error']['Code'] == '503':
+            # Catch GlacierExpeditedRetrievalNotAvailable
+            return False
+        raise
+
+    return True
 
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
