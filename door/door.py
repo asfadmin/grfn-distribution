@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 @app.before_first_request
 def init_app():
-    with open(os.environ['DOOR_CONFIG'], 'r') as f:
+    with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
         config = yaml.load(f)
         app.config.update(dict(config))
 
@@ -28,22 +28,20 @@ def download_redirect(file_name):
         if e.response['Error']['Code'] == '404':
             abort(404)
         raise
-
-    available = process_availability(obj, app.config['glacier_retrieval'])
+  
+    try:
+        available = process_availability(obj, app.config['glacier_retrieval'])
+    except ClientError as e:
+        if e.response['Error']['Code'] == '503':
+            return render_template('defrosterror.html'), 503
+        raise
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
-        if request.environ.get('URS_USERID'):
-            signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
-        else:
-            signed_url = signed_url + "&userid=" + os.environ['URS_USERID']
+        signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
-    elif available is None:
-        return render_template('notavailable.html'), 202
-    elif available is False:
-        return render_template('defrosterror.html'), 503
     else:
-        raise ValueError('Encounted unexpected Download status')
+        return render_template('notavailable.html'), 202
 
 
 def get_object(bucket, key):
@@ -58,10 +56,9 @@ def process_availability(obj, retrieval_opts):
     if obj.storage_class == 'GLACIER':
         restore_status = translate_restore_status(obj.restore)
         if restore_status in ['not_available', 'in_progress']:
-            available = None
+            available = False
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            if not restore_object(obj, **retrieval_opts):
-               available = False
+            restore_object(obj, **retrieval_opts)
                 
     return available
 
@@ -75,24 +72,23 @@ def translate_restore_status(restore):
 
 
 def restore_object(obj, days, tier):
-    try:
-        obj.restore_object(
-            RestoreRequest = {
-                'Days': days,
-                'GlacierJobParameters': {
-                    'Tier': tier,
-                },
-            }
-        ) 
+    obj.restore_object(
+        RestoreRequest = {
+            'Days': days,
+            'GlacierJobParameters': {
+                'Tier': tier,
+            },
+        }
+    ) 
         
-    except ClientError as e:
-        if e.response['Error']['Code'] == '503':
-            # Catch GlacierExpeditedRetrievalNotAvailable
-            return False
-        raise
+def get_environ_value(key):
 
-    return True
-
+    if request.environ.get(key):
+        return request.environ.get(key) 
+    elif os.environ[key]:
+        return os.environ[key]
+    else:
+        return None
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
     s3_client = boto3.client('s3')
