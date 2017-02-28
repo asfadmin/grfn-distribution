@@ -83,9 +83,9 @@ def restore_object(obj, days, tier):
         
 def get_environ_value(key):
 
-    if request.environ.get(key):
+    if key in request.environ:
         return request.environ.get(key) 
-    elif os.environ[key]:
+    elif key in os.environ:
         return os.environ[key]
     else:
         return None
