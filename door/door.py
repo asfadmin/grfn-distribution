@@ -12,6 +12,7 @@ def init_app():
     with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
         config = yaml.load(f)
         app.config.update(dict(config))
+    boto3.setup_default_session(region_name=config['aws_region'])
 
 
 @app.route('/')
@@ -30,7 +31,7 @@ def download_redirect(file_name):
         raise
   
     try:
-        available = process_availability(obj, app.config['glacier_retrieval'])
+        available = process_availability(obj, app.config['glacier_retrieval'], get_environ_value('URS_EMAIL'))
     except ClientError as e:
         if e.response['Error']['Code'] == '503':
             return render_template('defrosterror.html'), 503
@@ -51,14 +52,15 @@ def get_object(bucket, key):
     return obj
 
 
-def process_availability(obj, retrieval_opts):
+def process_availability(obj, retrieval_opts, email_address):
     available = True
     if obj.storage_class == 'GLACIER':
         restore_status = translate_restore_status(obj.restore)
         if restore_status in ['not_available', 'in_progress']:
             available = False
+            log_restore_request(retrieval_opts['db_table'], obj, email_address)
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            restore_object(obj, **retrieval_opts)
+            restore_object(obj, retrieval_opts['days'], retrieval_opts['tier'])
                 
     return available
 
@@ -80,6 +82,19 @@ def restore_object(obj, days, tier):
             },
         }
     ) 
+
+
+def log_restore_request(table, obj, email_address):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'bucket': {'S': obj.bucket}, 'key': {'S': obj.key}}
+    val = {'SS': [email_address]}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='ADD email_addresses :1',
+        ExpressionAttributeValues={':1': val},
+    )
+
         
 def get_environ_value(key):
 
@@ -89,6 +104,7 @@ def get_environ_value(key):
         return os.environ[key]
     else:
         return None
+
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
     s3_client = boto3.client('s3')
