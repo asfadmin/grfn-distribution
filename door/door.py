@@ -12,6 +12,7 @@ def init_app():
     with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
         config = yaml.load(f)
         app.config.update(dict(config))
+    boto3.setup_default_session(region_name=config['aws_region'])
 
 
 @app.route('/')
@@ -41,6 +42,7 @@ def download_redirect(file_name):
         signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
+        log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
         return render_template('notavailable.html'), 202
 
 
@@ -80,6 +82,19 @@ def restore_object(obj, days, tier):
             },
         }
     ) 
+
+
+def log_restore_request(table, obj, email_address):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'bucket': {'S': obj.bucket_name}, 'key': {'S': obj.key}}
+    val = {'SS': [email_address]}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='ADD email_addresses :1',
+        ExpressionAttributeValues={':1': val},
+    )
+
         
 def get_environ_value(key):
 
@@ -89,6 +104,7 @@ def get_environ_value(key):
         return os.environ[key]
     else:
         return None
+
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
     s3_client = boto3.client('s3')
