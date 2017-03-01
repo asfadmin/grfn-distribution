@@ -33,7 +33,7 @@ def download_redirect(file_name):
     try:
         available = process_availability(obj, app.config['glacier_retrieval'])
     except ClientError as e:
-        if e.response['Error']['Code'] == '503':
+        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
             return render_template('defrosterror.html'), 503
         raise
 
