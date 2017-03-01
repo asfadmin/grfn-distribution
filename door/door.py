@@ -31,7 +31,7 @@ def download_redirect(file_name):
         raise
   
     try:
-        available = process_availability(obj, app.config['glacier_retrieval'], get_environ_value('URS_EMAIL'))
+        available = process_availability(obj, app.config['glacier_retrieval'])
     except ClientError as e:
         if e.response['Error']['Code'] == '503':
             return render_template('defrosterror.html'), 503
@@ -42,6 +42,7 @@ def download_redirect(file_name):
         signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
+        log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
         return render_template('notavailable.html'), 202
 
 
@@ -52,15 +53,14 @@ def get_object(bucket, key):
     return obj
 
 
-def process_availability(obj, retrieval_opts, email_address):
+def process_availability(obj, retrieval_opts):
     available = True
     if obj.storage_class == 'GLACIER':
         restore_status = translate_restore_status(obj.restore)
         if restore_status in ['not_available', 'in_progress']:
             available = False
-            log_restore_request(retrieval_opts['db_table'], obj, email_address)
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            restore_object(obj, retrieval_opts['days'], retrieval_opts['tier'])
+            restore_object(obj, **retrieval_opts)
                 
     return available
 
@@ -86,7 +86,7 @@ def restore_object(obj, days, tier):
 
 def log_restore_request(table, obj, email_address):
     dynamodb = boto3.client('dynamodb')
-    primary_key = {'bucket': {'S': obj.bucket}, 'key': {'S': obj.key}}
+    primary_key = {'bucket': {'S': obj.bucket_name}, 'key': {'S': obj.key}}
     val = {'SS': [email_address]}
     dynamodb.update_item(
         TableName=table,
