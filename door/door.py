@@ -43,6 +43,7 @@ def download_redirect(file_name):
         return redirect(signed_url)
     else:
         log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
+        g.email = get_environ_value('URS_EMAIL')
         return render_template('notavailable.html'), 202
 
 
