@@ -9,9 +9,10 @@ app = Flask(__name__)
 
 @app.before_first_request
 def init_app():
-    with open(os.environ['DOOR_CONFIG'], 'r') as f:
+    with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
         config = yaml.load(f)
         app.config.update(dict(config))
+    boto3.setup_default_session(region_name=config['aws_region'])
 
 
 @app.route('/')
@@ -28,15 +29,22 @@ def download_redirect(file_name):
         if e.response['Error']['Code'] == '404':
             abort(404)
         raise
-
-    available = process_availability(obj, app.config['glacier_retrieval'])
+  
+    try:
+        available = process_availability(obj, app.config['glacier_retrieval'])
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
+            return render_template('defrosterror.html'), 503
+        raise
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
-        signed_url = signed_url + "&userid=" + request.environ.get('URS_USERID')
+        signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
-        return render_template('notavailable.html'), 503
+        log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
+        g.email = get_environ_value('URS_EMAIL')
+        return render_template('notavailable.html'), 202
 
 
 def get_object(bucket, key):
@@ -54,6 +62,7 @@ def process_availability(obj, retrieval_opts):
             available = False
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
             restore_object(obj, **retrieval_opts)
+                
     return available
 
 
@@ -73,7 +82,29 @@ def restore_object(obj, days, tier):
                 'Tier': tier,
             },
         }
-    ) # TODO handle error when expedited retrievals are not available
+    ) 
+
+
+def log_restore_request(table, obj, email_address):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'bucket': {'S': obj.bucket_name}, 'key': {'S': obj.key}}
+    val = {'SS': [email_address]}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='ADD email_addresses :1',
+        ExpressionAttributeValues={':1': val},
+    )
+
+        
+def get_environ_value(key):
+
+    if key in request.environ:
+        return request.environ.get(key) 
+    elif key in os.environ:
+        return os.environ[key]
+    else:
+        return None
 
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
