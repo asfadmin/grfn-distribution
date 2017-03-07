@@ -1,6 +1,7 @@
 import boto3
 import yaml
 import os
+import json
 from flask import Flask, g, redirect, render_template, request, abort
 from botocore.exceptions import ClientError
  
@@ -30,12 +31,7 @@ def download_redirect(file_name):
             abort(404)
         raise
   
-    try:
-        available = process_availability(obj, app.config['glacier_retrieval'])
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
-            return render_template('defrosterror.html'), 503
-        raise
+    available = process_availability(obj, app.config['glacier_retrieval'])
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
@@ -73,17 +69,26 @@ def translate_restore_status(restore):
         return 'in_progress'
     return 'available'
 
+def queue_restore_request(obj):
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName=app.config['glacier_restore_sqs'])
+    response = queue.send_message(MessageBody=json.dumps({'Bucket':obj.bucket_name, 'Key':obj.key}))
 
 def restore_object(obj, days, tier):
-    obj.restore_object(
-        RestoreRequest = {
-            'Days': days,
-            'GlacierJobParameters': {
-                'Tier': tier,
-            },
-        }
-    ) 
-
+    try: 
+        obj.restore_object(
+            RestoreRequest = {
+                'Days': days,
+                'GlacierJobParameters': {
+                    'Tier': tier,
+                },
+            }
+        ) 
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
+            queue_restore_request( obj )
+        else: 
+            raise
 
 def log_restore_request(table, obj, email_address):
     dynamodb = boto3.client('dynamodb')
