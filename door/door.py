@@ -57,7 +57,7 @@ def process_availability(obj, retrieval_opts):
         if restore_status in ['not_available', 'in_progress']:
             available = False
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            restore_object(obj, **retrieval_opts)
+            queue_restore_request(obj)
                 
     return available
 
