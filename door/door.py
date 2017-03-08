@@ -10,9 +10,14 @@ app = Flask(__name__)
 
 @app.before_first_request
 def init_app():
-    with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
-        config = yaml.load(f)
-        app.config.update(dict(config))
+    if get_environ_value('DOOR_CONFIG').startswith('s3://'):
+        path_parts = get_environ_value('DOOR_CONFIG').split('/')
+        config_body = get_object_body(path_parts[2], '/'.join(path_parts[3:]))
+        config = yaml.load(config_body)
+    else: 
+        with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
+            config = yaml.load(f)
+    app.config.update(dict(config))
     boto3.setup_default_session(region_name=config['aws_region'])
 
 
@@ -48,6 +53,11 @@ def get_object(bucket, key):
     obj = s3.Object(bucket, key)
     obj.load()
     return obj
+
+def get_object_body(bucket, key):
+    obj = get_object(bucket, key)
+    response = obj.get()
+    return response["Body"].read()
 
 
 def process_availability(obj, retrieval_opts):
