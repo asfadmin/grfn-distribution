@@ -1,6 +1,20 @@
 <html>
 <body>
+
+{% if g.email %}
 We're sorry, that file is in long term storage. We're fetching it for you and will email you at <a href="mailto:{{ g.email }}">{{ g.email }}</a> when it's available. Feel free to browse and download other files in the meantime.
+<br>
+<br>
+<a href="/door/userprofile">Unsubscribe </a>from email notifications.
+{%else %}
+We're sorry, that file is in long term storage. We're fetching it for you but you will not recieve an email when it is available.
+<br>
+<br>
+<a href="/door/userprofile"> Enable </a>email notifications.
+{% endif %}
+<br>
+<br>
+<a href="/">Home</a>  
+  
 </body>
 </html>
-

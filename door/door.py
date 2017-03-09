@@ -25,6 +25,30 @@ def init_app():
 def show_index():
    return get_content()
 
+@app.route('/userprofile', methods=['GET','POST'])
+def user_profile():
+  g.perf = ''
+  user_id = get_environ_value('URS_USERID')
+  table = app.config['user_preference_table']
+
+  if request.method == 'POST':
+    if not request.form:
+      put_user_preference(table,0,user_id)
+    else:
+      # Leaving this lean as we only have one checkbox
+      put_user_preference(table,1,user_id)
+      g.perf = "checked"
+    return render_template('userprofile.html'), 200   
+  
+  response = get_user_preference(table,user_id)
+  if response is None:
+    put_user_preference(table,1,user_id)
+    g.perf = "checked"
+  else:
+    if response is True:
+      g.perf = "checked"  
+      
+  return render_template('userprofile.html'), 200
 
 @app.route('/download/<file_name>')
 def download_redirect(file_name):
@@ -43,8 +67,10 @@ def download_redirect(file_name):
         signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
-        log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
-        g.email = get_environ_value('URS_EMAIL')
+        response = get_user_preference(app.config['user_preference_table'],get_environ_value('URS_USERID'))
+        if response is not False:
+           log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
+           g.email = get_environ_value('URS_EMAIL')
         return render_template('notavailable.html'), 202
 
 
@@ -99,6 +125,30 @@ def restore_object(obj, days, tier):
             queue_restore_request( obj )
         else: 
             raise
+
+def put_user_preference(table, pref, user_name):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'user': {'S': user_name}}
+    val = {'BOOL':  bool(pref)}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set email =  :1',
+        ExpressionAttributeValues={':1': val},  
+    )
+
+
+def get_user_preference(table, user_name):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'user': {'S': user_name}}
+    response = dynamodb.get_item(
+    TableName=table,
+    Key=primary_key,
+    )
+    
+    if 'Item' not in response:	
+	return None
+    return response['Item']['email']['BOOL']
 
 def log_restore_request(table, obj, email_address):
     dynamodb = boto3.client('dynamodb')
