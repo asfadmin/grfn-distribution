@@ -17,6 +17,5 @@ RUN mkdir -p /var/tmp/urs/session
 
 COPY src /var/www/
 
-COPY conf/door_config.yaml /var/www/door/door_config.yaml
 COPY conf/apache.conf /etc/apache2/apache2.conf
 
