@@ -71,7 +71,6 @@ def download_redirect(file_name):
         if response is not False:
            log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
            g.email = get_environ_value('URS_EMAIL')
-	g.host = app.config['host']
         return render_template('notavailable.html'), 202
 
 
@@ -143,12 +142,12 @@ def get_user_preference(table, user_name):
     dynamodb = boto3.client('dynamodb')
     primary_key = {'user': {'S': user_name}}
     response = dynamodb.get_item(
-        TableName=table,
-        Key=primary_key,
+    TableName=table,
+    Key=primary_key,
     )
-
-    if not response:
-      return None
+    
+    if 'Item' not in response:	
+	return None
     return response['Item']['email']['BOOL']
 
 def log_restore_request(table, obj, email_address):
