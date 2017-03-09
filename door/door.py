@@ -28,8 +28,8 @@ def show_index():
 @app.route('/userprofile', methods=['GET','POST'])
 def user_profile():
   g.perf = ''
-        user_id = get_environ_value('URS_USERID')
-        table = app.config['user_preference_table']
+  user_id = get_environ_value('URS_USERID')
+  table = app.config['user_preference_table']
 
   if request.method == 'POST':
     if not request.form:
@@ -71,6 +71,7 @@ def download_redirect(file_name):
         if response is not False:
            log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
            g.email = get_environ_value('URS_EMAIL')
+	g.host = app.config['host']
         return render_template('notavailable.html'), 202
 
 
@@ -146,7 +147,7 @@ def get_user_preference(table, user_name):
         Key=primary_key,
     )
 
-    if not response
+    if not response:
       return None
     return response['Item']['email']['BOOL']
 
