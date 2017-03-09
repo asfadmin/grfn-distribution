@@ -5,3 +5,4 @@ restore_request_table: grfn-d-glacier-restore-requests
 glacier_retrieval:
   days: 1
   tier: Expedited
+glacier_restore_sqs: GRFN-Glacier-Restore-Dev

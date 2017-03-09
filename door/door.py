@@ -1,6 +1,7 @@
 import boto3
 import yaml
 import os
+import json
 from flask import Flask, g, redirect, render_template, request, abort
 from botocore.exceptions import ClientError
  
@@ -9,9 +10,14 @@ app = Flask(__name__)
 
 @app.before_first_request
 def init_app():
-    with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
-        config = yaml.load(f)
-        app.config.update(dict(config))
+    if get_environ_value('DOOR_CONFIG').startswith('s3://'):
+        path_parts = get_environ_value('DOOR_CONFIG').split('/')
+        config_body = get_object_body(path_parts[2], '/'.join(path_parts[3:]))
+        config = yaml.load(config_body)
+    else: 
+        with open(get_environ_value('DOOR_CONFIG'), 'r') as f:
+            config = yaml.load(f)
+    app.config.update(dict(config))
     boto3.setup_default_session(region_name=config['aws_region'])
 
 
@@ -30,12 +36,7 @@ def download_redirect(file_name):
             abort(404)
         raise
   
-    try:
-        available = process_availability(obj, app.config['glacier_retrieval'])
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
-            return render_template('defrosterror.html'), 503
-        raise
+    available = process_availability(obj, app.config['glacier_retrieval'])
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
@@ -53,6 +54,11 @@ def get_object(bucket, key):
     obj.load()
     return obj
 
+def get_object_body(bucket, key):
+    obj = get_object(bucket, key)
+    response = obj.get()
+    return response["Body"].read()
+
 
 def process_availability(obj, retrieval_opts):
     available = True
@@ -61,7 +67,7 @@ def process_availability(obj, retrieval_opts):
         if restore_status in ['not_available', 'in_progress']:
             available = False
         if restore_status in ['not_available', 'available']:  # restoring available objects extends their expiration date
-            restore_object(obj, **retrieval_opts)
+            queue_restore_request(obj)
                 
     return available
 
@@ -73,17 +79,26 @@ def translate_restore_status(restore):
         return 'in_progress'
     return 'available'
 
+def queue_restore_request(obj):
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName=app.config['glacier_restore_sqs'])
+    response = queue.send_message(MessageBody=json.dumps({'Bucket':obj.bucket_name, 'Key':obj.key}))
 
 def restore_object(obj, days, tier):
-    obj.restore_object(
-        RestoreRequest = {
-            'Days': days,
-            'GlacierJobParameters': {
-                'Tier': tier,
-            },
-        }
-    ) 
-
+    try: 
+        obj.restore_object(
+            RestoreRequest = {
+                'Days': days,
+                'GlacierJobParameters': {
+                    'Tier': tier,
+                },
+            }
+        ) 
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'GlacierExpeditedRetrievalNotAvailable':
+            queue_restore_request( obj )
+        else: 
+            raise
 
 def log_restore_request(table, obj, email_address):
     dynamodb = boto3.client('dynamodb')
