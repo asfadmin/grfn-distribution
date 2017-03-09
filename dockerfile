@@ -14,6 +14,7 @@ RUN cd /tmp/urs && apxs -i -c -n mod_auth_urs mod_auth_urs.c mod_auth_urs_cfg.c 
 
 RUN a2enmod rewrite
 RUN a2enmod authz_groupfile
+RUN a2enmod ssl
 RUN mkdir -p /var/tmp/urs/session
 
 COPY src /var/www/
