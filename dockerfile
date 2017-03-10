@@ -19,5 +19,5 @@ RUN mkdir -p /var/tmp/urs/session
 
 COPY src /var/www/
 
-COPY conf/apache.conf /etc/apache2/apache2.conf
+COPY conf/apache2.conf /etc/apache2/apache2.conf
 
