@@ -1,0 +1,36 @@
+version: 0.1
+
+
+environment_variables:
+  plaintext:
+    IMAGE_NAME: "grfn-door"
+    IMAGE_HOST: "765666652335.dkr.ecr.us-west-2.amazonaws.com"
+    SHA1: "c4496c7"
+    MATURITY_LEVEL: "test"
+    TASK_DEFINITION_NAME: "grfn-door-test"
+    CLUSTER_NAME: "grfn-door-test"
+    SERVICE_NAME: "grfn-door-test"
+
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION)
+      - aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --query "taskDefinition.containerDefinitions" > containerDefinitions.json
+      - 'sed -i "s/\(\"image\": .*:\).*\"/\1$SHA1\"/" containerDefinitions.json'
+      - aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --query "taskDefinition.taskRoleArn" --output text > taskRoleArn.txt
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Pull the Docker image...          
+      - docker pull $IMAGE_HOST/$IMAGE_NAME:$SHA1
+      - echo Tagging $SHA1 as $MATURITY_LEVEL
+      - docker tag $IMAGE_HOST/$IMAGE_NAME:$SHA1 $IMAGE_HOST/$IMAGE_NAME:$MATURITY_LEVEL
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $IMAGE_HOST/$IMAGE_NAME:$MATURITY_LEVEL
+      - aws ecs register-task-definition --family $TASK_DEFINITION_NAME --task-role-arn $(cat taskRoleArn.txt) --container-definitions file://containerDefinitions.json
+      - aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition $TASK_DEFINITION_NAME
