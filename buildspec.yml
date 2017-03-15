@@ -5,7 +5,7 @@ environment_variables:
   plaintext:
     IMAGE_NAME: "grfn-door"
     IMAGE_HOST: "765666652335.dkr.ecr.us-west-2.amazonaws.com"
-    SHA1: "bdcfa8f"
+    SHA1: "939e824" #https://github.com/asfadmin/grfn-door/compare/bdcfa8f...939e824
     MATURITY_LEVEL: "test"
     TASK_DEFINITION_NAME: "grfn-door-test"
     CLUSTER_NAME: "grfn-door-test"
