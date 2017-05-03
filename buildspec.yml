@@ -3,12 +3,12 @@ version: 0.1
 
 environment_variables:
   plaintext:
-    PIPELINE_NAME: "grfn-door-test"
-    IMAGE_NAME: "grfn-door"
-    IMAGE_HOST: "765666652335.dkr.ecr.us-west-2.amazonaws.com"
-    TASK_DEFINITION_NAME: "grfn-door-test"
-    CLUSTER_NAME: "grfn-door-test"
-    SERVICE_NAME: "grfn-door-test"
+    PIPELINE_NAME: "door-test"
+    IMAGE_NAME: "door"
+    IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
+    TASK_DEFINITION_NAME: "door-test"
+    CLUSTER_NAME: "door-test"
+    SERVICE_NAME: "door-test"
 
 
 phases:
