@@ -1,9 +1,9 @@
-aws_region: us-west-2
-bucket_name: grfn-d-fe9f1b34-1425-56b9-939f-5f1431a6d1de
+aws_region: us-east-1
+bucket_name: grfn-private-test
 expire_time_in_seconds: 15
-restore_request_table: grfn-glacier-restore-requests-test
-user_preference_table: grfn-user-preferences-test
+restore_request_table: glacier-restore-requests-test
+user_preference_table: user-preferences-test
 glacier_retrieval:
   days: 1
   tier: Expedited
-glacier_restore_sqs: GRFN-Glacier-Restore-Test
+glacier_restore_sqs: glacier-restore-requests-test
