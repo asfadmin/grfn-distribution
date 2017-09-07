@@ -30,6 +30,6 @@ phases:
       - echo Pushing the Docker image...
       - docker push $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
       - docker push $IMAGE_HOST/$IMAGE_NAME:latest
-  artifacts:
-    files:
-      - Dockerrun.aws.json
+artifacts:
+  files:
+    - Dockerrun.aws.json
