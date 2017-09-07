@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 MAINTAINER "Alaska Satellite Facility"
 
-ENTRYPOINT ["apachectl", "-DFOREGROUND", "-DAUTH"]
+ENTRYPOINT ["apachectl", "-DFOREGROUND"]
 
 RUN apt-get update
 RUN apt-get install -y apache2 libssl-dev libapache2-mod-wsgi apache2-dev python python-pip
