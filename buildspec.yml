@@ -1,7 +1,6 @@
 # This build script is designed to run in AWS CodeBuild using the aws/codebuild/docker:17.09.0 image
 #   ubuntu 14.04.5
 #   docker 17.09.0
-#   python 2.7
 
 version: 0.1
 
