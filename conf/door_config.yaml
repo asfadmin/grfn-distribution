@@ -1,5 +1,5 @@
 aws_region: us-east-1
-bucket_name: grfn-private-test
+bucket_name: gsfc-ngap-asf-grfn-private-test
 expire_time_in_seconds: 15
 restore_request_table: glacier-restore-requests-test
 user_preference_table: user-preferences-test
