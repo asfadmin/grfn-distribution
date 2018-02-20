@@ -1,9 +1,10 @@
-import boto3
-import yaml
 import os
 import json
-from flask import Flask, g, redirect, render_template, request, abort
+import yaml
+
+import boto3
 from botocore.exceptions import ClientError
+from flask import Flask, g, redirect, render_template, request, abort
 
 app = Flask(__name__)
 
@@ -21,35 +22,34 @@ def init_app():
     boto3.setup_default_session(region_name=config['aws_region'])
 
 
-@app.route('/userprofile', methods=['GET','POST'])
+@app.route('/userprofile', methods=['GET', 'POST'])
 def user_profile():
-  g.perf = ''
-  user_id = get_environ_value('URS_USERID')
-  table = app.config['user_preference_table']
+    g.perf = ''
+    user_id = get_environ_value('URS_USERID')
+    table = app.config['user_preference_table']
 
-  if request.method == 'POST':
-    if not request.form:
-      put_user_preference(table,0,user_id)
+    if request.method == 'POST':
+        if not request.form:
+            put_user_preference(table, 0, user_id)
+        else:
+            # Leaving this lean as we only have one checkbox
+            put_user_preference(table, 1, user_id)
+            g.perf = "checked"
+        return render_template('userprofile.html'), 200
+
+    response = get_user_preference(table, user_id)
+    if response is None:
+        put_user_preference(table, 1, user_id)
+        g.perf = "checked"
     else:
-      # Leaving this lean as we only have one checkbox
-      put_user_preference(table,1,user_id)
-      g.perf = "checked"
+        if response is True:
+            g.perf = "checked"
+
     return render_template('userprofile.html'), 200
-
-  response = get_user_preference(table,user_id)
-  if response is None:
-    put_user_preference(table,1,user_id)
-    g.perf = "checked"
-  else:
-    if response is True:
-      g.perf = "checked"
-
-  return render_template('userprofile.html'), 200
 
 
 @app.route('/download/<file_name>')
 def download_redirect(file_name):
-
     try:
         obj = get_object(app.config['bucket_name'], file_name)
     except ClientError as e:
@@ -57,17 +57,17 @@ def download_redirect(file_name):
             abort(404)
         raise
 
-    available = process_availability(obj, app.config['glacier_retrieval'])
+    available = process_availability(obj)
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
-        response = get_user_preference(app.config['user_preference_table'],get_environ_value('URS_USERID'))
+        response = get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID'))
         if response is not False:
-           log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
-           g.email = get_environ_value('URS_EMAIL')
+            log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
+            g.email = get_environ_value('URS_EMAIL')
         return render_template('notavailable.html'), 202
 
 
@@ -84,7 +84,7 @@ def get_object_body(bucket, key):
     return response["Body"].read()
 
 
-def process_availability(obj, retrieval_opts):
+def process_availability(obj):
     available = True
     if obj.storage_class == 'GLACIER':
         restore_status = translate_restore_status(obj.restore)
@@ -107,7 +107,7 @@ def translate_restore_status(restore):
 def queue_restore_request(obj):
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName=app.config['glacier_restore_sqs'])
-    response = queue.send_message(MessageBody=json.dumps({'Bucket':obj.bucket_name, 'Key':obj.key}))
+    queue.send_message(MessageBody=json.dumps({'Bucket':obj.bucket_name, 'Key':obj.key}))
 
 
 def put_user_preference(table, pref, user_name):
@@ -125,13 +125,10 @@ def put_user_preference(table, pref, user_name):
 def get_user_preference(table, user_name):
     dynamodb = boto3.client('dynamodb')
     primary_key = {'user': {'S': user_name}}
-    response = dynamodb.get_item(
-    TableName=table,
-    Key=primary_key,
-    )
+    response = dynamodb.get_item(TableName=table, Key=primary_key)
 
     if 'Item' not in response:
-	return None
+        return None
     return response['Item']['email']['BOOL']
 
 
@@ -150,21 +147,20 @@ def log_restore_request(table, obj, email_address):
 def get_environ_value(key):
     if key in request.environ:
         return request.environ.get(key)
-    elif key in os.environ:
+    if key in os.environ:
         return os.environ[key]
-    else:
-        return None
+    return None
 
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
     s3_client = boto3.client('s3')
 
     url = s3_client.generate_presigned_url(
-       ClientMethod='get_object',
-       Params = {
-          'Bucket': bucket_name,
-          'Key': object_key,
-           },
-       ExpiresIn = expire_time_in_seconds
+        ClientMethod='get_object',
+        Params={
+            'Bucket': bucket_name,
+            'Key': object_key,
+        },
+        ExpiresIn=expire_time_in_seconds,
     )
     return url
