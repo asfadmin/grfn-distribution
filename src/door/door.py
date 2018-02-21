@@ -34,16 +34,16 @@ def user_profile():
         else:
             # Leaving this lean as we only have one checkbox
             put_user_preference(table, 1, user_id)
-            g.perf = "checked"
+            g.perf = 'checked'
         return render_template('userprofile.html'), 200
 
     response = get_user_preference(table, user_id)
     if response is None:
         put_user_preference(table, 1, user_id)
-        g.perf = "checked"
+        g.perf = 'checked'
     else:
         if response is True:
-            g.perf = "checked"
+            g.perf = 'checked'
 
     return render_template('userprofile.html'), 200
 
@@ -61,7 +61,7 @@ def download_redirect(file_name):
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
-        signed_url = signed_url + "&userid=" + get_environ_value('URS_USERID')
+        signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
     else:
         response = get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID'))
@@ -81,7 +81,7 @@ def get_object(bucket, key):
 def get_object_body(bucket, key):
     obj = get_object(bucket, key)
     response = obj.get()
-    return response["Body"].read()
+    return response['Body'].read()
 
 
 def process_availability(obj):
