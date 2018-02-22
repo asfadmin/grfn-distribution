@@ -1,0 +1,295 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  Name:
+    Type: String
+
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
+  VpcId:
+    Description: VPC Id in which to launch EC2 instances for ingest activities
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
+    Type: List<AWS::EC2::Subnet::Id>
+
+  PrivateBucket:
+    Description: Name of S3 bucket in which zipped output products will be archived
+    Type: String
+
+  UserPreferenceTable:
+    Type: String
+
+  GlacierRestoreTable:
+    Type: String
+
+  GlacierRestoreQueue:
+    Type: String
+
+  DoorContainerImage:
+    Type: String
+    Description: URL for runtime docker container (repository-url/image:tag)
+
+  UrsClientId:
+    Type: String
+
+  UrsAuthCode:
+    Type: String
+
+  CertificateArn:
+    Type: String
+
+  Ami:
+    Type: AWS::EC2::Image::Id
+    Description: Runtime AMI
+    Default: ami-5e414e24
+
+Outputs:
+
+  AppUrl:
+    Value: !Sub "https://${LoadBalancer.DNSName}/door/"
+
+  UrsRedirectUrl:
+    Value: !Sub "https://${LoadBalancer.DNSName}/door/oauth"
+
+Resources:
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref Name
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${Name}-instance"
+      GroupDescription: !Sub "Security group for ${Name} servers"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/ecsInstanceRole"
+      ImageId: !Ref Ami
+      InstanceType: t2.micro
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |-
+          #!/bin/bash -xe
+          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
+          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
+      InstanceMonitoring: false
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetId
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 2
+      Tags:
+      - Key: Name
+        Value: !Ref Name
+        PropagateAtLaunch: true
+
+  TaskIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref Name
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - ecs-tasks.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::grfn-config/door.test.yaml"
+          - Effect: Allow
+            Action:
+            - sqs:SendMessage
+            - sqs:GetQueueUrl
+            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRestoreQueue}"
+          - Effect: Allow
+            Action: dynamodb:UpdateItem
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRestoreTable}"
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UserPreferenceTable}"
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref Name
+      RetentionInDays: 30
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      TaskRoleArn: !Ref TaskIamRole
+      ContainerDefinitions:
+      - Name: !Ref Name
+        Image: !Ref DoorContainerImage
+        MemoryReservation: 256
+        Cpu: 1024
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref LogGroup
+            awslogs-region: !Ref AWS::Region
+        PortMappings:
+        - ContainerPort: 80
+          HostPort: 80
+        Environment:
+        - Name: DOOR_CONFIG
+          Value: s3://grfn-config/door.test.yaml
+        - Name: SERVER_NAME
+          Value: !GetAtt LoadBalancer.DNSName
+        - Name: URS_ACCESS_ERROR_URL
+          Value: !Sub "https://${LoadBalancer.DNSName}/error/failedauth.html"
+        - Name: URS_AUTH_CODE
+          Value: !Ref UrsAuthCode
+        - Name: URS_AUTH_SERVER
+          Value: https://urs.earthdata.nasa.gov
+        - Name: URS_CLIENT_ID
+          Value: !Ref UrsClientId
+        - Name: URS_REDIRECT_URL
+          Value: !Sub "https://${LoadBalancer.DNSName}/door/oauth"
+
+  GroupScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      Cooldown: 300
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 50
+
+  ServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 2
+      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsAutoscaleRole"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Ref Name
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ServiceScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 50
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Ref Name
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+      LoadBalancers:
+      - TargetGroupArn: !Ref TargetGroup
+        ContainerName: !Ref Name
+        ContainerPort: 80
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref Name
+      HealthCheckIntervalSeconds: 120
+      HealthCheckPath: /healthcheck.html
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${Name}-load-balancer"
+      GroupDescription: !Sub "Security group for ${Name} load balancer"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref Name
+      Subnets: !Ref SubnetId
+      SecurityGroups:
+      - !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+      - CertificateArn: !Ref CertificateArn

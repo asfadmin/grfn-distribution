@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
+  VpcId:
+    Description: VPC Id in which to launch EC2 instances for ingest activities
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
+    Type: List<AWS::EC2::Subnet::Id>
+
+  PrivateBucket:
+    Description: Name of S3 bucket in which zipped output products will be archived
+    Type: String
+
+  UserPreferenceTable:
+    Type: String
+
+  GlacierRestoreTable:
+    Type: String
+
+  GlacierRestoreQueue:
+    Type: String
+
+  DoorContainerImage:
+    Description: Full URL path of the docker container image to use for ingest activities
+    Type: String
+
+  UrsClientId:
+    Type: String
+
+  UrsAuthCode:
+    Type: String
+
+  CertificateArn:
+    Type: String
+
+  Maturity:
+    Description: Value for MATURITY tag to be applied to all taggable resources
+    Type: String
+    Default: DEV
+    AllowedValues:
+    - DEV
+    - TEST
+    - PROD
+
+Outputs:
+
+  AppUrl:
+    Value: !GetAtt MainStack.Outputs.AppUrl
+
+  UrsRedirectUrl:
+    Value: !GetAtt MainStack.Outputs.UrsRedirectUrl
+
+Resources:
+
+  MainStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Tags:
+        - Key: MATURITY
+          Value: !Ref Maturity
+        - Key: APPLICATION
+          Value: GRFN-DISTRIBUTION
+      Parameters:
+        Name: !Ref AWS::StackName
+        LogLevel: !Ref LogLevel
+        VpcId: !Ref VpcId
+        SubnetId: !Join [",", !Ref SubnetId]
+        PrivateBucket: !Ref PrivateBucket
+        UserPreferenceTable: !Ref UserPreferenceTable
+        GlacierRestoreTable: !Ref GlacierRestoreTable
+        GlacierRestoreQueue: !Ref GlacierRestoreQueue
+        DoorContainerImage: !Ref DoorContainerImage
+        UrsClientId: !Ref UrsClientId
+        UrsAuthCode: !Ref UrsAuthCode
+        CertificateArn: !Ref CertificateArn
+      TemplateURL: cloudformation-main.yaml
