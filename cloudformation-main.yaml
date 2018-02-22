@@ -50,6 +50,12 @@ Parameters:
   CertificateArn:
     Type: String
 
+  LoadBalancerCidrIp:
+    Type: String
+
+  ConfigFile:
+    Type: String
+
   Ami:
     Type: AWS::EC2::Image::Id
     Description: Runtime AMI
@@ -136,7 +142,7 @@ Resources:
             Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::grfn-config/door.test.yaml"
+            Resource: !Sub "arn:aws:s3:::grfn-config/*"
           - Effect: Allow
             Action:
             - sqs:SendMessage
@@ -176,7 +182,7 @@ Resources:
           HostPort: 80
         Environment:
         - Name: DOOR_CONFIG
-          Value: s3://grfn-config/door.test.yaml
+          Value: !Ref ConfigFile
         - Name: SERVER_NAME
           Value: !GetAtt LoadBalancer.DNSName
         - Name: URS_ACCESS_ERROR_URL
@@ -255,11 +261,11 @@ Resources:
       GroupDescription: !Sub "Security group for ${Name} load balancer"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
-      - CidrIp: 0.0.0.0/0
+      - CidrIp: !Ref LoadBalancerCidrIp
         IpProtocol: tcp
         FromPort: 80
         ToPort: 80
-      - CidrIp: 0.0.0.0/0
+      - CidrIp: !Ref LoadBalancerCidrIp
         IpProtocol: tcp
         FromPort: 443
         ToPort: 443

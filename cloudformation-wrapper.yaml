@@ -47,6 +47,12 @@ Parameters:
   CertificateArn:
     Type: String
 
+  LoadBalancerCidrIp:
+    Type: String
+
+  ConfigFile:
+    Type: String
+
   Maturity:
     Description: Value for MATURITY tag to be applied to all taggable resources
     Type: String
@@ -87,4 +93,6 @@ Resources:
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
+        LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
+        ConfigFile: !Ref ConfigFile
       TemplateURL: cloudformation-main.yaml
