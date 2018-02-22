@@ -237,7 +237,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       DeploymentConfiguration:
         MinimumHealthyPercent: 0
-        MaximumPercent: 200
+        MaximumPercent: 100
       LoadBalancers:
       - TargetGroupArn: !Ref TargetGroup
         ContainerName: !Ref Name
