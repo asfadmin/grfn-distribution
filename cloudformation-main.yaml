@@ -56,6 +56,9 @@ Parameters:
   ConfigFile:
     Type: String
 
+  Hostname:
+    Type: String
+
   Ami:
     Type: AWS::EC2::Image::Id
     Description: Runtime AMI
@@ -64,10 +67,13 @@ Parameters:
 Outputs:
 
   AppUrl:
-    Value: !Sub "https://${LoadBalancer.DNSName}/door/"
+    Value: !Sub "https://${Hostname}/door/"
 
-  UrsRedirectUrl:
-    Value: !Sub "https://${LoadBalancer.DNSName}/door/oauth"
+  LoadBalancerDnsName:
+    Value: !GetAtt LoadBalancer.DNSName
+
+  UrsRedirectUri:
+    Value: !Sub "https://${Hostname}/door/oauth"
 
 Resources:
 
@@ -186,7 +192,7 @@ Resources:
         - Name: SERVER_NAME
           Value: !GetAtt LoadBalancer.DNSName
         - Name: URS_ACCESS_ERROR_URL
-          Value: !Sub "https://${LoadBalancer.DNSName}/error/failedauth.html"
+          Value: !Sub "https://${Hostname}/error/failedauth.html"
         - Name: URS_AUTH_CODE
           Value: !Ref UrsAuthCode
         - Name: URS_AUTH_SERVER
@@ -194,7 +200,7 @@ Resources:
         - Name: URS_CLIENT_ID
           Value: !Ref UrsClientId
         - Name: URS_REDIRECT_URL
-          Value: !Sub "https://${LoadBalancer.DNSName}/door/oauth"
+          Value: !Sub "https://${Hostname}/door/oauth"
 
   GroupScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy

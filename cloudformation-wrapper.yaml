@@ -49,6 +49,10 @@ Parameters:
 
   LoadBalancerCidrIp:
     Type: String
+    Default: 0.0.0.0/0
+
+  Hostname:
+    Type: String
 
   ConfigFile:
     Type: String
@@ -67,8 +71,11 @@ Outputs:
   AppUrl:
     Value: !GetAtt MainStack.Outputs.AppUrl
 
-  UrsRedirectUrl:
-    Value: !GetAtt MainStack.Outputs.UrsRedirectUrl
+  LoadBalancerDnsName:
+    Value: !GetAtt MainStack.Outputs.LoadBalancerDnsName
+
+  UrsRedirectUri:
+    Value: !GetAtt MainStack.Outputs.UrsRedirectUri
 
 Resources:
 
@@ -76,10 +83,10 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Tags:
-        - Key: MATURITY
-          Value: !Ref Maturity
-        - Key: APPLICATION
-          Value: GRFN-DISTRIBUTION
+      - Key: MATURITY
+        Value: !Ref Maturity
+      - Key: APPLICATION
+        Value: GRFN-DISTRIBUTION
       Parameters:
         Name: !Ref AWS::StackName
         LogLevel: !Ref LogLevel
@@ -95,4 +102,5 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         ConfigFile: !Ref ConfigFile
+        Hostname: !Ref Hostname
       TemplateURL: cloudformation-main.yaml
