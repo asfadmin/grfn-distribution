@@ -190,7 +190,7 @@ Resources:
         - Name: DOOR_CONFIG
           Value: !Ref ConfigFile
         - Name: SERVER_NAME
-          Value: !GetAtt LoadBalancer.DNSName
+          Value: !Ref Hostname
         - Name: URS_ACCESS_ERROR_URL
           Value: !Sub "https://${Hostname}/error/failedauth.html"
         - Name: URS_AUTH_CODE
