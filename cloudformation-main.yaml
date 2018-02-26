@@ -31,12 +31,6 @@ Parameters:
   UserPreferenceTable:
     Type: String
 
-  GlacierRestoreTable:
-    Type: String
-
-  GlacierRestoreQueue:
-    Type: String
-
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -72,6 +66,13 @@ Outputs:
 
 Resources:
 
+  GlacierRequestsStack:
+    Type: AWS::CloudFormation::Stack
+    Properites:
+      Parameters:
+        Name: !Sub "${Name}-glacier-requests"
+    TemplateUrl: glacier-requests/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -82,8 +83,8 @@ Resources:
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
         UserPreferenceTable: !Ref UserPreferenceTable
-        GlacierRestoreTable: !Ref GlacierRestoreTable
-        GlacierRestoreQueue: !Ref GlacierRestoreQueue
+        GlacierRestoreTable: !GetAtt GlacierRequestsStack.Outputs.TableName
+        GlacierRestoreQueue: !GetAtt GlacierRequestsStack.Outputs.JobQueueName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode

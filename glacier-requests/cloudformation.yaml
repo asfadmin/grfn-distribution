@@ -5,13 +5,53 @@ Parameters:
   Name:
     Type: String
 
+Outputs:
+
+  JobQueueName:
+    Value: !Ref JobQueue
+
+  TableName:
+    Value: !Ref Table
+
 Resources:
 
-  DeadLetterQueue:
+  LambdaDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${Name}-dlq"
+      QueueName: !Sub "${Name}-lambda-dlq"
       MessageRetentionPeriod: 1209600
+
+  JobDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-job-dlq"
+      MessageRetentionPeriod: 1209600
+
+  JobQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-jobs"
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobDeadLetterQueue.Arn
+        maxReceiveCount: 25
+
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref Name
+      AttributeDefinitions:
+      - AttributeName: bucket
+        AttributeType: S
+      - AttributeName: key
+        AttributeType: S
+      KeySchema:
+      - AttributeName: bucket
+        KeyType: HASH
+      - AttributeName: key
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
 
   Role:
     Type: AWS::IAM::Role
@@ -41,7 +81,7 @@ Resources:
       MemorySize: 128
       Role: !GetAtt Role.Arn
       DeadLetterConfig:
-        TargetArn: !GetAtt DeadLetterQueue.Arn
+        TargetArn: !GetAtt LambdaDeadLetterQueue.Arn
       Handler: main.lambda_handler
       Code: src/
       Environment:
@@ -58,8 +98,8 @@ Resources:
       ScheduleExpression: "rate(1 minute)"
       State: ENABLED
       Targets:
-        - Arn: !GetAtt Lambda.Arn
-          Id: lambda
+      - Arn: !GetAtt Lambda.Arn
+        Id: lambda
 
   EventPermission:
     Type: AWS::Lambda::Permission

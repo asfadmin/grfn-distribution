@@ -28,12 +28,6 @@ Parameters:
   UserPreferenceTable:
     Type: String
 
-  GlacierRestoreTable:
-    Type: String
-
-  GlacierRestoreQueue:
-    Type: String
-
   DoorContainerRepo:
     Description: URL for docker container repository for door application (repository-url/image)
     Type: String
@@ -94,8 +88,6 @@ Resources:
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
         UserPreferenceTable: !Ref UserPreferenceTable
-        GlacierRestoreTable: !Ref GlacierRestoreTable
-        GlacierRestoreQueue: !Ref GlacierRestoreQueue
         DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
