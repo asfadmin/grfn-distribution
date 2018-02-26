@@ -236,6 +236,9 @@ Resources:
 
   Service:
     Type: AWS::ECS::Service
+    DependsOn:
+    - HttpListener
+    - HttpsListener
     Properties:
       ServiceName: !Ref Name
       Cluster: !Ref Cluster
