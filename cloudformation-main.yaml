@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  Name:
+    Type: String
+
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
+  VpcId:
+    Description: VPC Id in which to launch EC2 instances for ingest activities
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
+    Type: List<AWS::EC2::Subnet::Id>
+
+  PrivateBucket:
+    Description: Name of S3 bucket in which zipped output products will be archived
+    Type: String
+
+  UserPreferenceTable:
+    Type: String
+
+  GlacierRestoreTable:
+    Type: String
+
+  GlacierRestoreQueue:
+    Type: String
+
+  DoorContainerImage:
+    Description: URL for runtime docker container for door application (repository-url/image:tag)
+    Type: String
+
+  UrsClientId:
+    Type: String
+
+  UrsAuthCode:
+    Type: String
+
+  CertificateArn:
+    Type: String
+
+  LoadBalancerCidrIp:
+    Type: String
+
+  ConfigFile:
+    Type: String
+
+  Hostname:
+    Type: String
+
+Outputs:
+
+  AppUrl:
+    Value: !GetAtt DoorStack.Outputs.AppUrl
+
+  LoadBalancerDnsName:
+    Value: !GetAtt DoorStack.Outputs.LoadBalancerDnsName
+
+  UrsRedirectUri:
+    Value: !GetAtt DoorStack.Outputs.UrsRedirectUri
+
+Resources:
+
+  DoorStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-door"
+        LogLevel: !Ref LogLevel
+        VpcId: !Ref VpcId
+        SubnetId: !Join [",", !Ref SubnetId]
+        PrivateBucket: !Ref PrivateBucket
+        UserPreferenceTable: !Ref UserPreferenceTable
+        GlacierRestoreTable: !Ref GlacierRestoreTable
+        GlacierRestoreQueue: !Ref GlacierRestoreQueue
+        DoorContainerImage: !Ref DoorContainerImage
+        UrsClientId: !Ref UrsClientId
+        UrsAuthCode: !Ref UrsAuthCode
+        CertificateArn: !Ref CertificateArn
+        LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
+        ConfigFile: !Ref ConfigFile
+        Hostname: !Ref Hostname
+      TemplateURL: door/cloudformation.yaml
