@@ -38,8 +38,8 @@ Parameters:
     Type: String
 
   DoorContainerImage:
+    Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
-    Description: URL for runtime docker container (repository-url/image:tag)
 
   UrsClientId:
     Type: String
@@ -236,6 +236,9 @@ Resources:
 
   Service:
     Type: AWS::ECS::Service
+    DependsOn:
+    - HttpListener
+    - HttpsListener
     Properties:
       ServiceName: !Ref Name
       Cluster: !Ref Cluster
@@ -259,6 +262,9 @@ Resources:
       Port: 80
       Protocol: HTTP
       VpcId: !Ref VpcId
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
