@@ -21,7 +21,7 @@ phases:
       - sed -i "s/\$SHA1/$(cat sha1.txt)/" cloudformation-wrapper.yaml
   build:
     commands:
-      - docker build -t $IMAGE_NAME .
+      - cd door/; docker build -t $IMAGE_NAME .
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:latest
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
