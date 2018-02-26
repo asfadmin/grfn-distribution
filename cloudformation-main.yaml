@@ -38,8 +38,8 @@ Parameters:
     Type: String
 
   DoorContainerImage:
+    Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
-    Description: URL for runtime docker container (repository-url/image:tag)
 
   UrsClientId:
     Type: String
