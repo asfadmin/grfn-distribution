@@ -34,8 +34,8 @@ Parameters:
   GlacierRestoreQueue:
     Type: String
 
-  DoorContainerImage:
-    Description: Full URL path of the docker container image to use for ingest activities
+  DoorContainerRepo:
+    Description: URL for docker container repository for door application (repository-url/image)
     Type: String
 
   UrsClientId:
@@ -96,7 +96,7 @@ Resources:
         UserPreferenceTable: !Ref UserPreferenceTable
         GlacierRestoreTable: !Ref GlacierRestoreTable
         GlacierRestoreQueue: !Ref GlacierRestoreQueue
-        DoorContainerImage: !Ref DoorContainerImage
+        DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
