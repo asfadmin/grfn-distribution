@@ -5,6 +5,9 @@ Parameters:
   Name:
     Type: String
 
+  Bucket:
+    Type: String
+
 Outputs:
 
   JobQueueName:
@@ -64,13 +67,30 @@ Resources:
           Principal:
             Service: lambda.amazonaws.com
           Effect: Allow
-      ManagedPolicyArns:
-      - arn:aws:iam::406893895021:policy/grfn-sqs-subscriber
-      - arn:aws:iam::406893895021:policy/grfn-s3-config-read
-      - arn:aws:iam::406893895021:policy/grfn-sqs-publisher
-      - arn:aws:iam::406893895021:policy/grfn-cloudwatch-logs-write
-      - arn:aws:iam::406893895021:policy/grfn-s3-private-write
-      - arn:aws:iam::406893895021:policy/grfn-s3-private-read
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${Name}*"
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt LambdaDeadLetterQueue.Arn
+          - Effect: Allow
+            Action:
+            - sqs:GetQueueUrl
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            Resource: !GetAtt JobQueue.Arn
+          - Effect: Allow
+            Action:
+            - s3:RestoreObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
     Type: AWS::Lambda::Function
