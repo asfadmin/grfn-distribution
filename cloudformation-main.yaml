@@ -65,11 +65,12 @@ Resources:
 
   GlacierRequestsStack:
     Type: AWS::CloudFormation::Stack
-    Properites:
+    Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-requests"
+        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
-    TemplateUrl: glacier-requests/cloudformation.yaml
+      TemplateUrl: glacier-requests/cloudformation.yaml
 
   DoorStack:
     Type: AWS::CloudFormation::Stack

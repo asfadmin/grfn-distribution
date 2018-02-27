@@ -5,6 +5,17 @@ Parameters:
   Name:
     Type: String
 
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
   Bucket:
     Type: String
 
