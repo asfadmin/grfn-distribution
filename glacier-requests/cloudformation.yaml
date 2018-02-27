@@ -116,7 +116,7 @@ Resources:
             {
               "log_level": "${LogLevel}",
               "restore_requests": {
-                "queue": "${JobQueue}",
+                "queue": "${JobQueue.QueueName}",
                 "retention_days": 7,
                 "tier": {
                   "expedited_attempts": 10,
