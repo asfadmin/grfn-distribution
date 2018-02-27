@@ -71,6 +71,7 @@ Resources:
     Properites:
       Parameters:
         Name: !Sub "${Name}-glacier-requests"
+        Bucket: !Ref PrivateBucket
     TemplateUrl: glacier-requests/cloudformation.yaml
 
   DoorStack:

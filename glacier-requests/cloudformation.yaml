@@ -96,20 +96,28 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref Name
-      Runtime: python2.7
-      Timeout: 180
-      MemorySize: 128
-      Role: !GetAtt Role.Arn
+      Code: src/
       DeadLetterConfig:
         TargetArn: !GetAtt LambdaDeadLetterQueue.Arn
-      Handler: main.lambda_handler
-      Code: src/
       Environment:
         Variables:
-          CONFIG_BUCKET: grfn-config
-          PROD: glacier-restore-requests.prod.yaml
-          TEST: glacier-restore-requests.test.yaml
-          LATEST: glacier-restore-requests.test.yaml
+          CONFIG: !Sub |-
+            {
+              "log_level": "${LogLevel}",
+              "restore_requests": {
+                "queue": "${JobQueue}",
+                "retention_days": 7,
+                "tier": {
+                  "expedited_attempts": 10,
+                  "fallback_tier": "Standard"
+                }
+              }
+            }
+      Handler: main.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt Role.Arn
+      Runtime: python2.7
+      Timeout: 180
 
   Schedule:
     Type: AWS::Events::Rule
