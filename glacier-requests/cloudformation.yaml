@@ -22,7 +22,7 @@ Parameters:
 Outputs:
 
   JobQueueName:
-    Value: !Ref JobQueue
+    Value: !GetAtt JobQueue.QueueName
 
   TableName:
     Value: !Ref Table
