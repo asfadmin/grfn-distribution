@@ -47,9 +47,6 @@ Parameters:
   LoadBalancerCidrIp:
     Type: String
 
-  ConfigFile:
-    Type: String
-
   Hostname:
     Type: String
 
@@ -91,6 +88,5 @@ Resources:
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
-        ConfigFile: !Ref ConfigFile
         Hostname: !Ref Hostname
       TemplateURL: door/cloudformation.yaml

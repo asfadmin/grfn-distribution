@@ -53,9 +53,6 @@ Parameters:
   LoadBalancerCidrIp:
     Type: String
 
-  ConfigFile:
-    Type: String
-
   Hostname:
     Type: String
 
@@ -188,7 +185,15 @@ Resources:
           HostPort: 80
         Environment:
         - Name: DOOR_CONFIG
-          Value: !Ref ConfigFile
+          Value: !Sub |-
+            {
+              "aws_region": "${AWS::Region}",
+              "bucket_name": "${PrivateBucket}",
+              "expire_time_in_seconds": 15,
+              "user_preference_table": "${UserPreferenceTable}",
+              "restore_request_table": "${GlacierRequestsTable}",
+              "glacier_restore_sqs": "${GlacierRequestsQueue}"
+            }
         - Name: SERVER_NAME
           Value: !Ref Hostname
         - Name: URS_ACCESS_ERROR_URL
