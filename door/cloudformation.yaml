@@ -31,10 +31,10 @@ Parameters:
   UserPreferenceTable:
     Type: String
 
-  GlacierRestoreTable:
+  GlacierRequestsTable:
     Type: String
 
-  GlacierRestoreQueue:
+  GlacierRequestsQueue:
     Type: String
 
   DoorContainerImage:
@@ -153,10 +153,10 @@ Resources:
             Action:
             - sqs:SendMessage
             - sqs:GetQueueUrl
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRestoreQueue}"
+            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRequestsQueue}"
           - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRestoreTable}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
           - Effect: Allow
             Action:
             - dynamodb:GetItem
