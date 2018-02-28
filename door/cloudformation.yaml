@@ -31,10 +31,10 @@ Parameters:
   UserPreferenceTable:
     Type: String
 
-  GlacierRestoreTable:
+  GlacierRequestsTable:
     Type: String
 
-  GlacierRestoreQueue:
+  GlacierRequestsQueue:
     Type: String
 
   DoorContainerImage:
@@ -51,9 +51,6 @@ Parameters:
     Type: String
 
   LoadBalancerCidrIp:
-    Type: String
-
-  ConfigFile:
     Type: String
 
   Hostname:
@@ -153,10 +150,10 @@ Resources:
             Action:
             - sqs:SendMessage
             - sqs:GetQueueUrl
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRestoreQueue}"
+            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRequestsQueue}"
           - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRestoreTable}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
           - Effect: Allow
             Action:
             - dynamodb:GetItem
@@ -188,7 +185,15 @@ Resources:
           HostPort: 80
         Environment:
         - Name: DOOR_CONFIG
-          Value: !Ref ConfigFile
+          Value: !Sub |-
+            {
+              "aws_region": "${AWS::Region}",
+              "bucket_name": "${PrivateBucket}",
+              "expire_time_in_seconds": 15,
+              "user_preference_table": "${UserPreferenceTable}",
+              "restore_request_table": "${GlacierRequestsTable}",
+              "glacier_restore_sqs": "${GlacierRequestsQueue}"
+            }
         - Name: SERVER_NAME
           Value: !Ref Hostname
         - Name: URS_ACCESS_ERROR_URL

@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+
+  Name:
+    Type: String
+
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
+  Bucket:
+    Type: String
+
+Outputs:
+
+  JobQueueName:
+    Value: !GetAtt JobQueue.QueueName
+
+  TableName:
+    Value: !Ref Table
+
+Resources:
+
+  LambdaDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-lambda-dlq"
+      MessageRetentionPeriod: 1209600
+
+  JobDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-job-dlq"
+      MessageRetentionPeriod: 1209600
+
+  JobQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-jobs"
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobDeadLetterQueue.Arn
+        maxReceiveCount: 70
+
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref Name
+      AttributeDefinitions:
+      - AttributeName: bucket
+        AttributeType: S
+      - AttributeName: key
+        AttributeType: S
+      KeySchema:
+      - AttributeName: bucket
+        KeyType: HASH
+      - AttributeName: key
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref Name
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${Name}*"
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt LambdaDeadLetterQueue.Arn
+          - Effect: Allow
+            Action:
+            - sqs:GetQueueUrl
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            Resource: !GetAtt JobQueue.Arn
+          - Effect: Allow
+            Action:
+            - s3:RestoreObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref Name
+      Code: src/
+      DeadLetterConfig:
+        TargetArn: !GetAtt LambdaDeadLetterQueue.Arn
+      Environment:
+        Variables:
+          CONFIG: !Sub |-
+            {
+              "log_level": "${LogLevel}",
+              "restore_requests": {
+                "queue": "${JobQueue.QueueName}",
+                "retention_days": 7,
+                "tier": {
+                  "expedited_attempts": 60,
+                  "fallback_tier": "Standard"
+                }
+              }
+            }
+      Handler: main.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt Role.Arn
+      Runtime: python2.7
+      Timeout: 180
+
+  Schedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Ref Name
+      ScheduleExpression: "rate(1 minute)"
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt Lambda.Arn
+        Id: lambda
+
+  EventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt Lambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt Schedule.Arn
