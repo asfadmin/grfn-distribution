@@ -1,15 +1,29 @@
 <html>
-<body>
 
+<script>
+  function refresh() {
+    window.location.reload(true);
+  }
+  setTimeout(refresh, 60000);
+</script>
+
+<header>
+    <a href="https://www.asf.alaska.edu/"><img src="https://vertex.daac.asf.alaska.edu/static/images/alaska_satellite_facility_1000.png"></a>
+</header>
+
+<body>
+<p />
 {% if g.email %}
 This file is in long term storage.  We're fetching it for you and will email you shortly at <a href="mailto:{{ g.email }}">{{ g.email }}</a> when it's available to download.
-<br>
-<br>
-<a href="{{ url_for('user_profile') }}">Unsubscribe</a> from email notifications
 {%else %}
 This file is in long term storage.  We're fetching it for you; please try again in a few minutes.
-<br>
-<br>
+{% endif %}
+<p />
+This page will automatically refresh every minute.
+<p />
+{% if g.email %}
+<a href="{{ url_for('user_profile') }}">Unsubscribe</a> from email notifications
+{%else %}
 <a href="{{ url_for('user_profile') }}">Subscribe</a> to email notifications
 {% endif %}
 
