@@ -175,7 +175,7 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
 def get_glacier_products():
     dynamodb = boto3.client('dynamodb')
     response = dynamodb.scan(TableName=app.config['restore_request_table'])
-    keys = [item['key']['S'] for item in response['Items']]
+    keys = [item['key']['S'] for item in response['Items'] if get_environ_value('URS_EMAIL') in item['email_addresses']['SS']]
     products = []
     for key in keys:
         obj = get_object(app.config['bucket_name'], key)
