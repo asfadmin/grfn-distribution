@@ -60,13 +60,13 @@ Parameters:
 Outputs:
 
   AppUrl:
-    Value: !GetAtt MainStack.Outputs.AppUrl
+    Value: !GetAtt MainStackTest.Outputs.AppUrl
 
   LoadBalancerDnsName:
-    Value: !GetAtt MainStack.Outputs.LoadBalancerDnsName
+    Value: !GetAtt MainStackTest.Outputs.LoadBalancerDnsName
 
   UrsRedirectUri:
-    Value: !GetAtt MainStack.Outputs.UrsRedirectUri
+    Value: !GetAtt MainStackTest.Outputs.UrsRedirectUri
 
 Resources:
 
