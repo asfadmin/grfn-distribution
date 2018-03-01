@@ -63,7 +63,7 @@ Outputs:
 
 Resources:
 
-  GlacierRequestsStack-dmatz:
+  GlacierRequestsStackTest:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
@@ -72,7 +72,7 @@ Resources:
         Bucket: !Ref PrivateBucket
       TemplateURL: glacier-requests/cloudformation.yaml
 
-  GlacierNotificationsStack-dmatz:
+  GlacierNotificationsStackTest:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
@@ -81,7 +81,7 @@ Resources:
         Bucket: !Ref PrivateBucket
       TemplateURL: glacier-notifications/cloudformation.yaml
 
-  DoorStack-dmatz:
+  DoorStackTest:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:

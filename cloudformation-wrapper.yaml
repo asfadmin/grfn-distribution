@@ -70,7 +70,7 @@ Outputs:
 
 Resources:
 
-  MainStack-dmatz:
+  MainStackTest:
     Type: AWS::CloudFormation::Stack
     Properties:
       Tags:
