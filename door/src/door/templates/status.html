@@ -5,12 +5,12 @@
 This file is in long term storage.  We're fetching it for you and will email you shortly at <a href="mailto:{{ g.email }}">{{ g.email }}</a> when it's available to download.
 <br>
 <br>
-<a href="/door/userprofile">Unsubscribe</a> from email notifications
+<a href="{{ url_for('user_profile') }}">Unsubscribe</a> from email notifications
 {%else %}
 This file is in long term storage.  We're fetching it for you; please try again in a few minutes.
 <br>
 <br>
-<a href="/door/userprofile">Subscribe</a> to email notifications
+<a href="{{ url_for('user_profile') }}">Subscribe</a> to email notifications
 {% endif %}
 
 </body>
