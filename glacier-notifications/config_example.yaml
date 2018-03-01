@@ -1,0 +1,7 @@
+log_level: INFO
+restore_notifications:
+  db_table: glacier-restore-requests-test
+  email:
+    from_email: ASF User Services <uso@asf.alaska.edu>
+    download_path: https://grfn-door-test.asf.alaska.edu/door/download/{0}
+    unsubscribe_url: https://grfn-door-test.asf.alaska.edu/door/userprofile

@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      ManagedPolicyArns:
+      - arn:aws:iam::406893895021:policy/grfn-s3-config-read
+      - arn:aws:iam::406893895021:policy/grfn-dynamodb
+      - arn:aws:iam::406893895021:policy/grfn-sqs-publisher
+      - arn:aws:iam::406893895021:policy/grfn-cloudwatch-logs-write
+      - arn:aws:iam::406893895021:policy/grfn-ses-send-email
+      - arn:aws:iam::406893895021:policy/grfn-s3-private-read
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref AWS::StackName
+      Code: src/
+      DeadLetterConfig:
+        TargetArn: !GetAtt DeadLetterQueue.Arn
+      Description: grfn-glacier-restore-notifications $SHA1
+      Environment:
+        Variables:
+          CONFIG_BUCKET: grfn-config
+          PROD: glacier-restore-notifications.prod.yaml
+          TEST: glacier-restore-notifications.test.yaml
+          LATEST: glacier-restore-notifications.test.yaml
+      Handler: main.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt Role.Arn
+      Runtime: python2.7
+      Timeout: 20
+
+  LambdaVersion:
+    Type: Custom::LambdaVersion
+    Properties:
+      ServiceToken: arn:aws:lambda:us-east-1:406893895021:function:publish-lambda-version:PROD
+      FunctionName: !Ref Lambda
+      DynamicValueToForceUpdate: "$SHA1"
+
+  TestAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref Lambda
+      Name: TEST
+      FunctionVersion: !GetAtt LambdaVersion.Version
