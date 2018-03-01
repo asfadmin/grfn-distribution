@@ -152,7 +152,9 @@ Resources:
             - sqs:GetQueueUrl
             Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRequestsQueue}"
           - Effect: Allow
-            Action: dynamodb:UpdateItem
+            Action:
+            - dynamodb:UpdateItem
+            - dynamodb:Scan
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
           - Effect: Allow
             Action:
