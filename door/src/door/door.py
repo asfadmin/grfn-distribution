@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 import boto3
 from botocore.exceptions import ClientError
@@ -22,9 +23,6 @@ def index():
 
 @app.route('/status')
 def status():
-    response = get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID'))
-    if response is not False:
-        g.email = get_environ_value('URS_EMAIL')
     products = get_glacier_products()
     return render_template('status.html', products=products), 200
 
@@ -179,9 +177,12 @@ def get_glacier_products():
     products = []
     for key in keys:
         obj = get_object(app.config['bucket_name'], key)
-        products.append({
+        product = {
             'key': key,
             'status': translate_restore_status(obj.restore),
-            'url': url_for('download_redirect', file_name=key),
-        })
+        }
+        if product['status'] == 'available':
+            product['url'] = url_for('download_redirect', file_name=key)
+            product['expiration'] = re.search('expiry-date="(.+)"', obj.restore).group(1)
+        products.append(product)
     return products
