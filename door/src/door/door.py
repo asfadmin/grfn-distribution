@@ -180,9 +180,9 @@ def get_glacier_products():
         product = {
             'key': key,
             'status': translate_restore_status(obj.restore),
-            'url': url_for('download_redirect', file_name=key),
         }
         if product['status'] == 'available':
+            product['url'] = url_for('download_redirect', file_name=key)
             product['expiration'] = re.search('expiry-date="(.+)"', obj.restore).group(1)
         products.append(product)
     return products
