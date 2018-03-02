@@ -16,19 +16,17 @@
 Your requested data is being fetched from long term storage.  A link will appear below when available for download.  Data files will be returned to long term storage after seven days.
 <p />
 
-In Progress:
-<UL>
-    {% for product in products if product.status != 'available' %}
+{% for product in products if product.status != 'available' %}
+    {% if loop.first %}In Progress:<UL>{% endif %}
     <li>{{ product.key }}</li>
-    {% endfor %}
-</UL>
+    {% if loop.last %}</UL>{% endif %}
+{% endfor %}
 
-Available:
-<UL>
-    {% for product in products if product.status == 'available' %}
-    <li><a href="{{ product.url }}">{{ product.key }}</a> available through {{ product.expiration }}</li>
-    {% endfor %}
-</UL>
+{% for product in products if product.status == 'available' %}
+    {% if loop.first %}Available:<UL>{% endif %}
+    <li><a href="{{ product.url }}">{{ product.key }}</a> available through {{ product.expiration.strftime('%b %d, %Y UTC') }}</li>
+    {% if loop.last %}</UL>{% endif %}
+{% endfor %}
 
 </body>
 </html>
