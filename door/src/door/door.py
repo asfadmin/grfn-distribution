@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -183,6 +184,6 @@ def get_glacier_products():
         }
         if product['status'] == 'available':
             product['url'] = url_for('download_redirect', file_name=key)
-            product['expiration'] = re.search('expiry-date="(.+)"', obj.restore).group(1)
+            product['expiration'] = datetime.strptime(re.search('expiry-date="(.+)"', obj.restore).group(1), '%a, %d %b %Y %H:%M:%S %Z')
         products.append(product)
     return products
