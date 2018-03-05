@@ -53,13 +53,13 @@ Parameters:
 Outputs:
 
   AppUrl:
-    Value: !GetAtt DoorStackTest.Outputs.AppUrl
+    Value: !GetAtt DoorStack.Outputs.AppUrl
 
   LoadBalancerDnsName:
-    Value: !GetAtt DoorStackTest.Outputs.LoadBalancerDnsName
+    Value: !GetAtt DoorStack.Outputs.LoadBalancerDnsName
 
   UrsRedirectUri:
-    Value: !GetAtt DoorStackTest.Outputs.UrsRedirectUri
+    Value: !GetAtt DoorStack.Outputs.UrsRedirectUri
 
 Resources:
 
@@ -91,8 +91,8 @@ Resources:
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
         UserPreferenceTable: !Ref UserPreferenceTable
-        GlacierRequestsTable: !GetAtt GlacierRequestsStackTest.Outputs.TableName
-        GlacierRequestsQueue: !GetAtt GlacierRequestsStackTest.Outputs.JobQueueName
+        GlacierRequestsTable: !GetAtt GlacierRequestsStack.Outputs.TableName
+        GlacierRequestsQueue: !GetAtt GlacierRequestsStack.Outputs.JobQueueName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
