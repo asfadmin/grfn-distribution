@@ -8,7 +8,7 @@ environment_variables:
   plaintext:
     BUCKET: "grfn-software"
     PREFIX: "lambda"
-    PIPELINE_NAME: "distribution-test"
+    PIPELINE_NAME: "dmatz-grfn779-test"
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "TEST"

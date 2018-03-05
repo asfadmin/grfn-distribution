@@ -60,17 +60,17 @@ Parameters:
 Outputs:
 
   AppUrl:
-    Value: !GetAtt MainStackTest.Outputs.AppUrl
+    Value: !GetAtt MainStack.Outputs.AppUrl
 
   LoadBalancerDnsName:
-    Value: !GetAtt MainStackTest.Outputs.LoadBalancerDnsName
+    Value: !GetAtt MainStack.Outputs.LoadBalancerDnsName
 
   UrsRedirectUri:
-    Value: !GetAtt MainStackTest.Outputs.UrsRedirectUri
+    Value: !GetAtt MainStack.Outputs.UrsRedirectUri
 
 Resources:
 
-  MainStackTest:
+  MainStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Tags:
