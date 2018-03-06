@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Properties:
-  
+
   Name:
     Type: String
 
@@ -15,9 +15,6 @@ Properties:
     - WARNING
     - INFO
     - DEBUG
-
-  Bucket:
-    Type: String
 
 Resources:
 
