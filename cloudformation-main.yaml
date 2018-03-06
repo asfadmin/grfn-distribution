@@ -72,14 +72,14 @@ Resources:
         Bucket: !Ref PrivateBucket
       TemplateURL: glacier-requests/cloudformation.yaml
 
-#  GlacierNotificationsStack:
-#    Type: AWS::CloudFormation::Stack
-#    Properties:
-#      Parameters:
-#        Name: !Sub "${Name}-glacier-notifications"
-#        LogLevel: !Ref LogLevel
-#        Bucket: !Ref PrivateBucket
-#      TemplateURL: glacier-notifications/cloudformation.yaml
+  GlacierNotificationsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-notifications"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+      TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
     Type: AWS::CloudFormation::Stack
