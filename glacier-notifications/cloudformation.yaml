@@ -1,14 +1,34 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
+  Name:
+    Type: String
+
+  LogLevel:
+    Description: Application logging level
+    Type: String
+    Default: INFO
+    AllowedValues:
+    - CRITICAL
+    - ERROR
+    - WARNING
+    - INFO
+    - DEBUG
+
+  Bucket:
+    Type: String
+
 Resources:
-  DeadLetterQueue:
+
+  LambdaDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
+      QueueName: !Sub "${Name}-lambda-dlq"
       MessageRetentionPeriod: 1209600
 
   Role:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Ref Name
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -27,7 +47,7 @@ Resources:
   Lambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Ref AWS::StackName
+      FunctionName: !Ref Name
       Code: src/
       DeadLetterConfig:
         TargetArn: !GetAtt DeadLetterQueue.Arn
