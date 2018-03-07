@@ -101,17 +101,3 @@ Resources:
       Role: !GetAtt Role.Arn
       Runtime: python2.7
       Timeout: 20
-
-  LambdaVersion:
-    Type: Custom::LambdaVersion
-    Properties:
-      ServiceToken: arn:aws:lambda:us-east-1:406893895021:function:publish-lambda-version:PROD
-      FunctionName: !Ref Lambda
-      DynamicValueToForceUpdate: "$SHA1"
-
-  TestAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref Lambda
-      Name: TEST
-      FunctionVersion: !GetAtt LambdaVersion.Version
