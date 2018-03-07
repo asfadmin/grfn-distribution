@@ -16,6 +16,15 @@ Parameters:
     - INFO
     - DEBUG
 
+  Bucket:
+    Type: String
+
+  GlacierRequestsTable:
+    Type: String
+
+  SenderEmailAddress:
+    Type: String
+
 Resources:
 
   DeadLetterQueue:
@@ -35,13 +44,32 @@ Resources:
           Principal:
             Service: lambda.amazonaws.com
           Effect: Allow
-      ManagedPolicyArns:
-      - arn:aws:iam::406893895021:policy/grfn-s3-config-read
-      - arn:aws:iam::406893895021:policy/grfn-dynamodb
-      - arn:aws:iam::406893895021:policy/grfn-sqs-publisher
-      - arn:aws:iam::406893895021:policy/grfn-cloudwatch-logs-write
-      - arn:aws:iam::406893895021:policy/grfn-ses-send-email
-      - arn:aws:iam::406893895021:policy/grfn-s3-private-read
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${Name}*"
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt DeadLetterQueue.Arn
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+          - Effect: Allow
+            Action:
+            - dynamodb:Scan
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${SenderEmailAddress}"
 
   Lambda:
     Type: AWS::Lambda::Function
