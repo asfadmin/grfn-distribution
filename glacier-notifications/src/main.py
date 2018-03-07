@@ -1,3 +1,4 @@
+import json
 from os import environ
 from logging import getLogger
 import boto3
@@ -60,6 +61,7 @@ def put_restore_date(table_name, request):
         ExpressionAttributeValues={':1': val},
     )
 
+
 def delete_request_record(table_name, request):
     dynamodb = boto3.client('dynamodb')
     primary_key = {'bucket': request['bucket'], 'key': request['key']}
@@ -81,7 +83,7 @@ def send_notification_for_file(to, files, config):
         email_body += EMAIL_TEMPLATE_OLD.format("<br>\n".join(old))
     if files['wait']:
         email_body += EMAIL_TEMPLATE_WAIT.format("<br>\n".join(wait))
-    email_body += EMAIL_TEMPLATE_FOOTER.format(config['unsubscribe_url'])  
+    email_body += EMAIL_TEMPLATE_FOOTER.format(config['unsubscribe_url'])
 
     ses_message = {
         'Source': config['from_email'],
@@ -114,13 +116,16 @@ def get_object(request):
 def is_available(obj):
     return obj.storage_class != 'GLACIER' or (obj.restore and 'ongoing-request="false"' in obj.restore)
 
+
 def is_new(request):
     return not 'restore_date' in request
+
 
 def is_old(request, old_threshold):
     if is_new(request):
         return False
     return parse(request['restore_date']['S']) < ( datetime.now() - timedelta(hours=old_threshold) )
+
 
 def process_restore_notifications(config):
     emails = {}
@@ -129,27 +134,26 @@ def process_restore_notifications(config):
         addresses = request['email_addresses']['SS']
         if is_old(request, 24):
             delete_request_record(config['db_table'], request)
-            continue 
+            continue
         for address in addresses:
             if not address in emails:
                 emails[address] = { 'new': [], 'old': [], 'wait': [] }
-        if is_new(request): 
-            if is_available(obj): 
+        if is_new(request):
+            if is_available(obj):
                 put_restore_date(config['db_table'], request)
-                for address in addresses: 
+                for address in addresses:
                     emails[address]['new'].append( request )
             else:
                 for address in addresses:
                     emails[address]['wait'].append( request )
         else:
-            for address in addresses: 
+            for address in addresses:
                 emails[address]['old'].append( request )
-                   
-    for email in emails: 
+
+    for email in emails:
         if emails[email]['new']:
             log.warning('Sending notifications to %s', email)
             send_notification_for_file(email, emails[email], config['email'])
-   
 
 
 def lambda_handler(event, context):
