@@ -30,7 +30,7 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${Name}-lambda-dlq"
+      QueueName: !Sub "${Name}-dlq"
       MessageRetentionPeriod: 1209600
 
   Role:
