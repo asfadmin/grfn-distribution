@@ -18,7 +18,7 @@ Parameters:
 
 Resources:
 
-  LambdaDeadLetterQueue:
+  DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub "${Name}-lambda-dlq"
