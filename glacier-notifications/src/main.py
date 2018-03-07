@@ -1,7 +1,6 @@
-import os
+from os import environ
 from logging import getLogger
 import boto3
-import yaml
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 
@@ -37,31 +36,8 @@ Thank you,<br>ASF DAAC
 '''
 
 
-def get_file_content_from_s3(bucket, key):
-    s3 = boto3.resource('s3')
-    obj = s3.Object(bucket, key)
-    response = obj.get()
-    contents = response['Body'].read()
-    return contents
-
-
-def get_maturity(arn):
-    arn_tail = arn.split(':')[-1]
-    if arn_tail in ['DEV', 'TEST', 'PROD']:
-        maturity = arn_tail
-    else:
-        maturity = 'LATEST'
-    return maturity
-
-
-def get_config(bucket, key):
-    config_contents = get_file_content_from_s3(bucket, key)
-    return yaml.load(config_contents)
-
-
-def setup(arn):
-    maturity = get_maturity(arn)
-    config = get_config(os.environ['CONFIG_BUCKET'], os.environ[maturity])
+def setup():
+    config = json.loads(environ['CONFIG'])
     log.setLevel(config['log_level'])
     log.debug('Config: %s', str(config))
     return config
@@ -177,6 +153,5 @@ def process_restore_notifications(config):
 
 
 def lambda_handler(event, context):
-    arn = context.invoked_function_arn
-    config = setup(arn)
+    config = setup()
     process_restore_notifications(config['restore_notifications'])
