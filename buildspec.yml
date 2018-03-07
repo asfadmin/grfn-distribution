@@ -11,7 +11,7 @@ environment_variables:
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "PROD"
-    SHA1: "ec0f0d3"
+    SHA1: "a562530"
 
 phases:
   pre_build:
@@ -23,7 +23,8 @@ phases:
       - docker pull $IMAGE_HOST/$IMAGE_NAME:$SHA1
       - docker tag $IMAGE_HOST/$IMAGE_NAME:$SHA1 $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - pip install -r glacier-requests/requirements.txt -t glacier-requests/src/
-      - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml 
+      - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
+      - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
       - docker push $IMAGE_HOST/$IMAGE_NAME:$MATURITY

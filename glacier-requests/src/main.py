@@ -55,6 +55,7 @@ def restore_object(s3, request, retention_days, tier):
     except ClientError as e:
         if e.response['Error']['Code'] == 'RestoreAlreadyInProgress':
             return True
+        log.exception('Failed to restore object.')
         return False
 
     return True
