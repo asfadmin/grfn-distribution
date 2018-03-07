@@ -25,6 +25,9 @@ Parameters:
   SenderEmailAddress:
     Type: String
 
+  Hostname:
+    Type: String
+
 Resources:
 
   DeadLetterQueue:
@@ -81,10 +84,18 @@ Resources:
       Description: grfn-glacier-restore-notifications $SHA1
       Environment:
         Variables:
-          CONFIG_BUCKET: grfn-config
-          PROD: glacier-restore-notifications.prod.yaml
-          TEST: glacier-restore-notifications.test.yaml
-          LATEST: glacier-restore-notifications.test.yaml
+          CONFIG: !Sub |-
+            {
+              "log_level": "${LogLevel}",
+              "restore_notifications": {
+                "db_table": "${GlacierRequestsTable}",
+                "email": {
+                  "from_email": "ASF User Services <${SenderEmailAddress}>",
+                  "download_path": "https://${Hostname}/door/download/{0}",
+                  "unsubscribe_url": "https://${Hostname}/door/userprofile"
+                }
+              }
+            }
       Handler: main.lambda_handler
       MemorySize: 128
       Role: !GetAtt Role.Arn
