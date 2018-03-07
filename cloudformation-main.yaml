@@ -78,6 +78,9 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        GlacierRequestsTable: !Ref GlacierRequestsStack.Outputs.TableName
+        Hostname: !Ref Hostname
       TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
