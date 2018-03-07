@@ -24,6 +24,7 @@ Parameters:
 
   SenderEmailAddress:
     Type: String
+    Default: uso@asf.alaska.edu
 
   Hostname:
     Type: String
