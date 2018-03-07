@@ -1,9 +1,11 @@
 import os
 import json
+import re
+from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-from flask import Flask, g, redirect, render_template, request, abort
+from flask import Flask, g, redirect, render_template, request, abort, url_for
 
 app = Flask(__name__)
 
@@ -13,6 +15,17 @@ def init_app():
     config = json.loads(get_environ_value('DOOR_CONFIG'))
     app.config.update(dict(config))
     boto3.setup_default_session(region_name=config['aws_region'])
+
+
+@app.route('/')
+def index():
+    return redirect(url_for('status'))
+
+
+@app.route('/status')
+def status():
+    products = get_glacier_products()
+    return render_template('status.html', products=products), 200
 
 
 @app.route('/userprofile', methods=['GET', 'POST'])
@@ -60,8 +73,7 @@ def download_redirect(file_name):
         response = get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID'))
         if response is not False:
             log_restore_request(app.config['restore_request_table'], obj, get_environ_value('URS_EMAIL'))
-            g.email = get_environ_value('URS_EMAIL')
-        return render_template('notavailable.html'), 202
+        return redirect(url_for('status'))
 
 
 def get_object(bucket, key):
@@ -157,3 +169,21 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
         ExpiresIn=expire_time_in_seconds,
     )
     return url
+
+
+def get_glacier_products():
+    dynamodb = boto3.client('dynamodb')
+    response = dynamodb.scan(TableName=app.config['restore_request_table'])
+    keys = [item['key']['S'] for item in response['Items'] if get_environ_value('URS_EMAIL') in item['email_addresses']['SS']]
+    products = []
+    for key in keys:
+        obj = get_object(app.config['bucket_name'], key)
+        product = {
+            'key': key,
+            'status': translate_restore_status(obj.restore),
+        }
+        if product['status'] == 'available':
+            product['url'] = url_for('download_redirect', file_name=key)
+            product['expiration'] = datetime.strptime(re.search('expiry-date="(.+)"', obj.restore).group(1), '%a, %d %b %Y %H:%M:%S %Z')
+        products.append(product)
+    return products
