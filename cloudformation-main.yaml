@@ -50,6 +50,10 @@ Parameters:
   Hostname:
     Type: String
 
+  RetentionDays:
+    Type: Number
+    Default: 7
+
 Outputs:
 
   AppUrl:
@@ -63,6 +67,32 @@ Outputs:
 
 Resources:
 
+  GlacierAvailabilityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-availability"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !Ref BundlesTable
+        BundleObjectsTable: !Ref BundleObjectsTable
+      TemplateURL: glacier-availability/cloudformation.yaml
+
+
+  GlacierStatusStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-status"
+        LogLevel: !Ref LogLevel
+        ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !Ref BundlesTable
+        BundleObjectsTable: !Ref BundleObjectsTable
+        RetentionDays: !Ref RetentionDays
+      TemplateURL: glacier-status/cloudformation.yaml
+
+
   GlacierRequestsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -70,18 +100,9 @@ Resources:
         Name: !Sub "${Name}-glacier-requests"
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+        RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-requests/cloudformation.yaml
-
-  GlacierNotificationsStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-notifications"
-        LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
-        GlacierRequestsTable: !GetAtt GlacierRequestsStack.Outputs.TableName
-        Hostname: !Ref Hostname
-      TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
     Type: AWS::CloudFormation::Stack
@@ -93,12 +114,87 @@ Resources:
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
         UserPreferenceTable: !Ref UserPreferenceTable
-        GlacierRequestsTable: !GetAtt GlacierRequestsStack.Outputs.TableName
-        GlacierRequestsQueue: !GetAtt GlacierRequestsStack.Outputs.JobQueueName
+        StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
+        AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
+        RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
+
+  BundlesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Name}-bundles"
+      AttributeDefinitions:
+      - AttributeName: bundle_id
+        AttributeType: S
+      - AttributeName: user_id
+        AttributeType: S
+      - AttributeName: close_date
+        AttributeType: S
+      KeySchema:
+      - AttributeName: bundle_id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      GlobalSecondaryIndexes:
+      - IndexName: user
+        KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: close_date
+          KeyType: RANGE
+        Projection:
+          ProjectionType: KEYS_ONLY
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+  ObjectsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Name}-objects"
+      AttributeDefinitions:
+      - AttributeName: object_key
+        AttributeType: S
+      - AttributeName: availability
+        AttributeType: S
+      KeySchema:
+      - AttributeName: object_key
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      GlobalSecondaryIndexes:
+      - IndexName: availability
+        KeySchema:
+        - AttributeName: availability
+          KeyType: HASH
+        Projection:
+          ProjectionType: KEYS_ONLY
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+  BundleObjectsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Name}-bundle-objects"
+      AttributeDefinitions:
+      - AttributeName: bundle_id
+        AttributeType: S
+      - AttributeName: object_key
+        AttributeType: S
+      KeySchema:
+      - AttributeName: bundle_id
+        KeyType: HASH
+      - AttributeName: object_key
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
