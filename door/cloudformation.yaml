@@ -31,10 +31,10 @@ Parameters:
   UserPreferenceTable:
     Type: String
 
-  GlacierRequestsTable:
+  AvailabilityLambda:
     Type: String
 
-  GlacierRequestsQueue:
+  StatusLambda:
     Type: String
 
   DoorContainerImage:
@@ -60,6 +60,10 @@ Parameters:
     Type: AWS::EC2::Image::Id
     Description: Runtime AMI
     Default: ami-5e414e24
+
+  RetentionDays:
+    Type: Number
+    Default: 7
 
 Outputs:
 
@@ -144,23 +148,15 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
           - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::grfn-config/*"
-          - Effect: Allow
-            Action:
-            - sqs:SendMessage
-            - sqs:GetQueueUrl
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${GlacierRequestsQueue}"
-          - Effect: Allow
-            Action:
-            - dynamodb:UpdateItem
-            - dynamodb:Scan
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
-          - Effect: Allow
             Action:
             - dynamodb:GetItem
             - dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UserPreferenceTable}"
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource:
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -193,8 +189,9 @@ Resources:
               "bucket_name": "${PrivateBucket}",
               "expire_time_in_seconds": 15,
               "user_preference_table": "${UserPreferenceTable}",
-              "restore_request_table": "${GlacierRequestsTable}",
-              "glacier_restore_sqs": "${GlacierRequestsQueue}"
+              "availability_lambda": "${AvailabilityLambda}",
+              "status_lambda": "${StatusLambda}",
+              "retention_days": ${RetentionDays}
             }
         - Name: SERVER_NAME
           Value: !Ref Hostname
