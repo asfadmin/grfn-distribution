@@ -22,9 +22,16 @@ Parameters:
   ObjectsTable:
     Type: String
 
-  RetentionDays:
-    Type: Number
-    Default: 7
+  BundlesTable:
+    Type: String
+
+  BundleObjectsTable:
+    Type: String
+
+Outputs:
+
+  LambdaName:
+    Value: !Ref Lambda
 
 Resources:
 
@@ -66,14 +73,15 @@ Resources:
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: dynamodb:Query
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/availability"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
           - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
+            Resource:
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
           - Effect: Allow
-            Action:
-            - s3:GetObject
-            - s3:RestoreObject
+            Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
@@ -88,35 +96,15 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "restore_requests": {
+              "availability": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
-                "restore": {
-                    "tier": "Expedited",
-                    "retention_days": ${RetentionDays}
-                }
+                "bundles_table": "${BundlesTable}",
+                "bundle_objects_table": "${BundleObjectsTable}"
               }
             }
       Handler: main.lambda_handler
       MemorySize: 128
       Role: !GetAtt Role.Arn
       Runtime: python2.7
-      Timeout: 180
-
-  Schedule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Ref Name
-      ScheduleExpression: "rate(1 minute)"
-      State: ENABLED
-      Targets:
-      - Arn: !GetAtt Lambda.Arn
-        Id: lambda
-
-  EventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt Lambda.Arn
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt Schedule.Arn
+      Timeout: 60
