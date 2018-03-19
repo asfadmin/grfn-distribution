@@ -24,17 +24,12 @@ def index():
 
 @app.route('/status')
 def status():
-    retention_days = app.config['retention_days']
-
-    payload = {'user_id': get_environ_value('URS_USERID')}
-    lamb = boto3.client('lambda')
-    response = lamb.invoke(
-        FunctionName=app.config['status_lambda'],
-        Payload=json.dumps(payload),
-    )
-    objects = json.loads(response['Payload'].read())
-
-    return render_template('status.html', objects=objects, retention_days=retention_days), 200
+    data = {
+        'retention_days': app.config['retention_days'],
+        'subscribed_to_emails': get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID')),
+        'objects': get_objects_for_user(app.config['status_lambda'], get_environ_value('URS_USERID')),
+    }
+    return render_template('status.html', data=data), 200
 
 
 @app.route('/userprofile', methods=['GET', 'POST'])
@@ -137,3 +132,13 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
         ExpiresIn=expire_time_in_seconds,
     )
     return url
+
+def get_objects_for_user(status_lambda, user_id):
+    payload = {'user_id': user_id}
+    lamb = boto3.client('lambda')
+    response = lamb.invoke(
+        FunctionName=status_lambda,
+        Payload=json.dumps(payload),
+    )
+    objects = json.loads(response['Payload'].read())
+    return objects

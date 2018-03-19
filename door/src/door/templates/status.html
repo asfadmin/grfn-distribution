@@ -13,20 +13,28 @@
 
 <body>
 <p />
-Your requested data are being fetched from long term storage.  A link will appear below when available for download.  Data files will be returned to long term storage after {{ retention_days }} days.
+Your requested data are being fetched from long-term storage.  A link will appear below when available for download.  Data files will be returned to long term-storage after {{ data.retention_days }} days.
 <p />
 
-{% for object in objects if object.availability != 'available' %}
+{% for object in data.objects if object.availability != 'available' %}
     {% if loop.first %}In Progress:<UL>{% endif %}
     <li>{{ object.object_key }}</li>
     {% if loop.last %}</UL>{% endif %}
 {% endfor %}
 
-{% for object in objects if object.availability =='available' %}
+{% for object in data.objects if object.availability =='available' %}
     {% if loop.first %}Available:<UL>{% endif %}
     <li><a href="{{ url_for('download_redirect', file_name=object.object_key) }}">{{ object.object_key }}</a> available through {{ object.expiration_date }} UTC</li>
     {% if loop.last %}</UL>{% endif %}
 {% endfor %}
 
+<p />
+This page will refresh every minute.
+<p />
+{% if data.subscribed_to_emails %}
+<a href="{{ url_for('user_profile') }}">Unsubscribe</a> from email notifications
+{% else %}
+<a href="{{ url_for('user_profile') }}">Subscribe</a> to email notifications
+{% endif %}
 </body>
 </html>
