@@ -13,7 +13,7 @@
 
 <body>
 <p />
-Your requested data are being fetched from long-term storage.  A link will appear below when available for download.  Data files will be returned to long-term storage after {{ data.retention_days }} days.
+Your requested data are being fetched from long-term storage.  Links will appear below when products are available for download.  Data files will be returned to long-term storage after {{ data.retention_days }} days.
 <p />
 
 {% for object in data.objects if object.availability != 'available' %}
