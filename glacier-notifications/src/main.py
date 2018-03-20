@@ -2,39 +2,12 @@ import json
 from os import environ
 from logging import getLogger
 import boto3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from dateutil.parser import parse
-
+from jinja2 import Template
 
 log = getLogger()
-
-
-EMAIL_TEMPLATE_NEW = '''
-Newly available data to download:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_OLD = '''
-Already available for download:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_WAIT = '''
-Data request still in process:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_FOOTER = '''
-Thank you,<br>ASF DAAC
-<p>
-<a href="{0}">Unsubscribe</a> from email notifications
-'''
+ses = boto3.client('ses')
 
 
 def setup():
@@ -50,49 +23,32 @@ def get_restore_requests(table_name):
     return response['Items']
 
 
-def put_restore_date(table_name, request):
-    dynamodb = boto3.client('dynamodb')
-    primary_key = {'bucket': request['bucket'], 'key': request['key']}
-    val = {'S':  str(datetime.now()) }
-    dynamodb.update_item(
-        TableName=table_name,
-        Key=primary_key,
-        UpdateExpression='set restore_date = :1',
-        ExpressionAttributeValues={':1': val},
-    )
+def build_acknowledgement_email_body(config):
+    with open(config['template_file'], 'r') as t:
+        template_text = t.read()
+    template = Template(template_text)
+    email_body = template.render(hostname=config['hostname'])
+    return email_body
 
 
-def delete_request_record(table_name, request):
-    dynamodb = boto3.client('dynamodb')
-    primary_key = {'bucket': request['bucket'], 'key': request['key']}
-    dynamodb.delete_item(TableName=table_name, Key=primary_key)
+def send_acknowledgement_email(to_email, config):
+    ses_message = build_acknowledgement_email(to_email, config)
+    ses.send_email(**ses_message)
 
 
-def send_notification_for_file(to, files, config):
-    ses = boto3.client('ses')
-    new, old, wait = [], [], []
-    for record in files['new']:
-        new.append("<li></b>"+config['download_path'].format(record['key']['S'])+"</b></li>")
-    for record in files['old']:
-        old.append("<li>"+config['download_path'].format(record['key']['S'])+"</li>")
-    for record in files['wait']:
-        wait.append("<li>{0}</li>".format(record['key']['S']))
-
-    email_body = EMAIL_TEMPLATE_NEW.format("<br>\n".join(new))
-    if files['old']:
-        email_body += EMAIL_TEMPLATE_OLD.format("<br>\n".join(old))
-    if files['wait']:
-        email_body += EMAIL_TEMPLATE_WAIT.format("<br>\n".join(wait))
-    email_body += EMAIL_TEMPLATE_FOOTER.format(config['unsubscribe_url'])
+def build_acknowledgement_email(to_email, config):
+    today = date.strftime(datetime.utcnow(), '%B %d, %Y') #TODO deal with time zones
+    subject = 'SAR Products Requested {0}'.format(today)
+    email_body = build_acknowledgement_email_body(config['email_body'])
 
     ses_message = {
         'Source': config['from_email'],
         'Destination': {
-            'ToAddresses': [to],
+            'ToAddresses': [to_email],
         },
         'Message': {
             'Subject': {
-                'Data': 'SAR Product Available to Download',
+                'Data': subject,
             },
             'Body': {
                 'Html': {
@@ -101,30 +57,7 @@ def send_notification_for_file(to, files, config):
             },
         },
     }
-
-    ses.send_email(**ses_message)
-
-
-def get_object(request):
-    s3 = boto3.resource('s3')
-    bucket = request['bucket']['S']
-    key = request['key']['S']
-    obj = s3.Object(bucket, key)
-    return obj
-
-
-def is_available(obj):
-    return obj.storage_class != 'GLACIER' or (obj.restore and 'ongoing-request="false"' in obj.restore)
-
-
-def is_new(request):
-    return not 'restore_date' in request
-
-
-def is_old(request, old_threshold):
-    if is_new(request):
-        return False
-    return parse(request['restore_date']['S']) < ( datetime.now() - timedelta(hours=old_threshold) )
+    return ses_message
 
 
 def process_restore_notifications(config):
