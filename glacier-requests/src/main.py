@@ -1,11 +1,15 @@
+import json
+import re
 from os import environ
 from logging import getLogger
+from datetime import datetime
 import boto3
-import json
 from botocore.exceptions import ClientError
 
 
 log = getLogger()
+s3 = boto3.resource('s3')
+dynamodb = boto3.client('dynamodb')
 
 
 def setup():
@@ -15,50 +19,80 @@ def setup():
     return config
 
 
-def get_tier(receive_count, config):
-    if receive_count <= config['expedited_attempts']:
-        return 'Expedited'
-    return config['fallback_tier']
+def get_object(bucket, key):
+    obj = s3.Object(bucket, key)
+    obj.load()
+    return obj
+
+
+def translate_restore_status(restore):
+    if restore is None:
+        return 'not_available'
+    if 'ongoing-request="true"' in restore:
+        return 'in_progress'
+    return 'available'
+
+
+def update_object(table, object_key, expiration_date):
+    log.info('Object is now available.  Object Key: %s, Expiration Date %s', object_key, str(expiration_date))
+    primary_key = {'object_key': {'S': object_key}}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set availability = :1, expiration_date = :2',
+        ExpressionAttributeValues={
+            ':1': {'S': 'available'},
+            ':2': {'S': str(expiration_date)},
+        },
+    )
+
+
+def get_expiration_date(restore_string):
+    expiration_date = re.search('expiry-date="(.+)"', restore_string).group(1)
+    expiration_date = datetime.strptime(expiration_date, '%a, %d %b %Y %H:%M:%S %Z')
+    return expiration_date
+
+
+def get_pending_objects(table):
+    results = dynamodb.query(
+        TableName=table,
+        IndexName='availability',
+        KeyConditionExpression='availability = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': 'pending'},
+        },
+        ProjectionExpression='object_key',
+    )
+    object_keys = [item['object_key']['S'] for item in results['Items']]
+    return object_keys
 
 
 def process_restore_requests(config):
-    queue = boto3.resource('sqs').get_queue_by_name(QueueName=config['queue'])
-    s3 = boto3.client('s3')
-    while True:
-        response = queue.receive_messages(AttributeNames=['ApproximateReceiveCount'])
-        if not response:
-            break
-        for message in response:
-            try:
-                request = json.loads(message.body)
-                receive_count = int(message.attributes['ApproximateReceiveCount'])
-                tier = get_tier(receive_count, config['tier'])
-                if restore_object(s3, request, config['retention_days'], tier):
-                    message.delete()
-            except ValueError:
-                log.warn("Could not format JSON object '%s'", message.body)
+    object_keys = get_pending_objects(config['objects_table'])
+
+    for object_key in object_keys:
+        obj = get_object(config['bucket'], object_key)
+        status = translate_restore_status(obj.restore)
+        if status == 'not_available':
+            restore_object(obj, config['restore'])
+        if status == 'available':
+            expiration_date = get_expiration_date(obj.restore)
+            update_object(config['objects_table'], object_key, expiration_date)
 
 
-def restore_object(s3, request, retention_days, tier):
+def restore_object(obj, config):
+    log.info('Restoring object.  Object Key: %s, Tier: %s, Retention Days: %s', obj.key, config['tier'], config['retention_days'])
     try:
-        log.info('Tier: %s, Retention Days: %s, Object: s3://%s/%s', tier, retention_days, request['Bucket'], request['Key'])
-        s3.restore_object(
-            Bucket=request['Bucket'],
-            Key=request['Key'],
+        obj.restore_object(
             RestoreRequest={
-                'Days': retention_days,
+                'Days': config['retention_days'],
                 'GlacierJobParameters': {
-                    'Tier': tier,
+                    'Tier': config['tier'],
                 },
             }
         )
     except ClientError as e:
-        if e.response['Error']['Code'] == 'RestoreAlreadyInProgress':
-            return True
         log.exception('Failed to restore object.')
-        return False
-
-    return True
 
 
 def lambda_handler(event, context):
