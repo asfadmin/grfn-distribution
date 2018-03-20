@@ -37,6 +37,12 @@ Resources:
       QueueName: !Sub "${Name}-dlq"
       MessageRetentionPeriod: 1209600
 
+  EmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-email"
+      MessageRetentionPeriod: 1209600
+
   Role:
     Type: AWS::IAM::Role
     Properties:
@@ -94,7 +100,8 @@ Resources:
                   "from_email": "ASF User Services <${SenderEmailAddress}>",
                   "download_path": "https://${Hostname}/door/download/{0}",
                   "unsubscribe_url": "https://${Hostname}/door/userprofile"
-                }
+                },
+                "email_queue": !Ref EmailQueue.Arn
               }
             }
       Handler: main.lambda_handler
@@ -107,7 +114,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: !Ref Name
-      ScheduleExpression: "rate(1 hour)"
+      ScheduleExpression: "rate(1 minute)"
       State: ENABLED
       Targets:
       - Arn: !GetAtt Lambda.Arn
