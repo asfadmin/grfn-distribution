@@ -25,9 +25,6 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
-  UserPreferenceTable:
-    Type: String
-
   DoorContainerRepo:
     Description: URL for docker container repository for door application (repository-url/image)
     Type: String
@@ -84,7 +81,6 @@ Resources:
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
-        UserPreferenceTable: !Ref UserPreferenceTable
         DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode

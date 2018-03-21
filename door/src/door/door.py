@@ -26,7 +26,7 @@ def index():
 def status():
     data = {
         'retention_days': app.config['retention_days'],
-        'subscribed_to_emails': get_user_preference(app.config['user_preference_table'], get_environ_value('URS_USERID')),
+        'subscribed_to_emails': get_user_preference(app.config['users_table'], get_environ_value('URS_USERID')),
         'objects': get_objects_for_user(app.config['status_lambda'], get_environ_value('URS_USERID')),
     }
     return render_template('status.html', data=data), 200
@@ -36,7 +36,7 @@ def status():
 def user_profile():
     g.perf = ''
     user_id = get_environ_value('URS_USERID')
-    table = app.config['user_preference_table']
+    table = app.config['users_table']
 
     if request.method == 'POST':
         if not request.form:
@@ -92,26 +92,26 @@ def get_s3_object(bucket, key):
     return obj
 
 
-def put_user_preference(table, pref, user_name):
+def put_user_preference(table, pref, user_id):
     dynamodb = boto3.client('dynamodb')
-    primary_key = {'user': {'S': user_name}}
+    primary_key = {'user_id': {'S': user_id}}
     val = {'BOOL':  bool(pref)}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set email =  :1',
+        UpdateExpression='set email_address =  :1',
         ExpressionAttributeValues={':1': val},
     )
 
 
-def get_user_preference(table, user_name):
+def get_user_preference(table, user_id):
     dynamodb = boto3.client('dynamodb')
-    primary_key = {'user': {'S': user_name}}
+    primary_key = {'user_id': {'S': user_id}}
     response = dynamodb.get_item(TableName=table, Key=primary_key)
 
     if 'Item' not in response:
         return None
-    return response['Item']['email']['BOOL']
+    return response['Item']['email_address']['BOOL']
 
 
 def get_environ_value(key):
