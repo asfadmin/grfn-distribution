@@ -102,9 +102,9 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "emails": {
+              "notifications": {
                 "email_queue_url": "${EmailQueue}",
-                "wait_time_in_seconds": 60,
+                "wait_time_in_seconds": 20,
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",

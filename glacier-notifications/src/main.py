@@ -81,7 +81,7 @@ def build_acknowledgement_email(to_email, config):
 def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
     if payload['type'] == 'acknowledgement':
-        send_acknowledgement_email(payload['data'], config['email_content'])
+        send_acknowledgement_email(payload['data'], config)
     #TODO trap errors
 
 
