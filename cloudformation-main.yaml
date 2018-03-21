@@ -199,16 +199,16 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
 
-  UserPreferencesTable:
+  UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${Name}-user-preferences"
+      TableName: !Sub "${Name}-users"
       AttributeDefinitions:
-      - AttributeName: user
-      AttributeType: S
-    KeySchema:
-    - KeyType: HASH
-      AttributeName: user
-    ProvisionedThroughput:
-      WriteCapacityUnits: 1
-      ReadCapacityUnits: 1
+      - AttributeName: user_id
+        AttributeType: S
+      KeySchema:
+      - KeyType: HASH
+        AttributeName: user_id
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
