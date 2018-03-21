@@ -99,7 +99,7 @@ def put_user_preference(table, pref, user_id):
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set email_address =  :1',
+        UpdateExpression='set subscribed_to_emails =  :1',
         ExpressionAttributeValues={':1': val},
     )
 
@@ -109,9 +109,9 @@ def get_user_preference(table, user_id):
     primary_key = {'user_id': {'S': user_id}}
     response = dynamodb.get_item(TableName=table, Key=primary_key)
 
-    if 'Item' not in response:
-        return None
-    return response['Item']['email_address']['BOOL']
+    if 'Item' not in response or 'subscribed_to_emails' not in response['Item']:
+        return True
+    return response['Item']['subscribed_to_emails']['BOOL']
 
 
 def get_environ_value(key):
