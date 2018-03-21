@@ -24,7 +24,11 @@ Parameters:
 
   SenderEmailAddress:
     Type: String
-    Default: "ASF User Services <uso@asf.alaska.edu>"
+    Default: "uso@asf.alaska.edu"
+
+  SenderDescription:
+    Type: String
+    Default: "ASF User Services"
 
 Outputs:
 
@@ -108,6 +112,7 @@ Resources:
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",
+                  "from_description": "${SenderDescription}",
                   "from_email": "${SenderEmailAddress}",
                   "email_body": {
                     "hostname": "${Hostname}",

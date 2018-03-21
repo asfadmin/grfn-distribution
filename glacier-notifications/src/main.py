@@ -56,11 +56,12 @@ def send_acknowledgement_email(data, config):
 
 def build_acknowledgement_email(to_email, config):
     today = date.strftime(datetime.utcnow(), '%B %d, %Y')
+    from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
     subject = 'SAR Products Requested {0} UTC'.format(today)
     email_body = build_acknowledgement_email_body(config['email_body'])
 
     ses_message = {
-        'Source': config['from_email'],
+        'Source': from_email,
         'Destination': {
             'ToAddresses': [to_email],
         },
