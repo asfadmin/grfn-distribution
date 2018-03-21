@@ -3,8 +3,8 @@ from os import environ
 from logging import getLogger
 import boto3
 from datetime import datetime, timedelta, date
-from dateutil.parser import parse
 from jinja2 import Template
+
 
 log = getLogger()
 ses = boto3.client('ses')
@@ -34,11 +34,12 @@ def build_acknowledgement_email_body(config):
 def send_acknowledgement_email(to_email, config):
     ses_message = build_acknowledgement_email(to_email, config)
     ses.send_email(**ses_message)
+    #TODO update last acknowledged date for user
 
 
 def build_acknowledgement_email(to_email, config):
     today = date.strftime(datetime.utcnow(), '%B %d, %Y') #TODO deal with time zones
-    subject = 'SAR Products Requested {0}'.format(today)
+    subject = 'SAR Products Requested {0} UTC'.format(today)
     email_body = build_acknowledgement_email_body(config['email_body'])
 
     ses_message = {
