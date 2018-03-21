@@ -11,7 +11,7 @@ environment_variables:
     PIPELINE_NAME: "EmailNotificationsTestPipeline"
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
-    MATURITY: "TEST"
+    MATURITY: "DEV"
 
 phases:
   pre_build:
