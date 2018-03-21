@@ -101,7 +101,7 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level'": "${LogLevel}",
+              "log_level": "${LogLevel}",
               "emails": {
                 "email_queue_url": "${EmailQueue}",
                 "wait_time_in_seconds": 60,
