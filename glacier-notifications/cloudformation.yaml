@@ -71,7 +71,7 @@ Resources:
             Action:
             - logs:CreateLogStream
             - logs:PutLogEvents
-            Resource: !Ref LogGroup.Arn
+            Resource: !GetAtt LogGroup.Arn
           - Effect: Allow
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
