@@ -28,9 +28,6 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
-  UserPreferenceTable:
-    Type: String
-
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -104,6 +101,16 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-requests/cloudformation.yaml
 
+  GlacierNotificationsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-notifications"
+        LogLevel: !Ref LogLevel
+        UsersTable: !Ref UsersTable
+        Hostname: !Ref Hostname
+      TemplateURL: glacier-notifications/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -113,7 +120,7 @@ Resources:
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
-        UserPreferenceTable: !Ref UserPreferenceTable
+        UsersTable: !Ref UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
