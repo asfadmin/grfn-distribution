@@ -104,6 +104,16 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-requests/cloudformation.yaml
 
+  GlacierNotificationsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-notifications"
+        LogLevel: !Ref LogLevel
+        UsersTable: !Ref ObjectsTable
+        Hostname: !Ref Hostname
+      TemplateURL: glacier-notifications/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:

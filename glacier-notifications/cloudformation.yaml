@@ -16,18 +16,20 @@ Parameters:
     - INFO
     - DEBUG
 
-  Bucket:
+  UsersTable:
     Type: String
 
-  GlacierRequestsTable:
+  Hostname:
     Type: String
 
   SenderEmailAddress:
     Type: String
-    Default: uso@asf.alaska.edu
+    Default: "ASF User Services <uso@asf.alaska.edu>"
 
-  Hostname:
-    Type: String
+Outputs:
+
+  EmailQueue:
+    Value: !Ref EmailQueue
 
 Resources:
 
@@ -42,6 +44,12 @@ Resources:
     Properties:
       QueueName: !Sub "${Name}-email"
       MessageRetentionPeriod: 1209600
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Name}"
+      RetentionInDays: 30
 
   Role:
     Type: AWS::IAM::Role
@@ -61,22 +69,23 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
-            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${Name}*"
+            Resource: !Ref LogGroup.Arn
           - Effect: Allow
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+            Action:
+            - sqs:GetQueueUrl
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            Resource: !GetAtt EmailQueue.Arn
           - Effect: Allow
             Action:
-            - dynamodb:Scan
+            - dynamodb:GetItem
             - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${GlacierRequestsTable}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
           - Effect: Allow
             Action: ses:SendEmail
             Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${SenderEmailAddress}"
@@ -88,27 +97,30 @@ Resources:
       Code: src/
       DeadLetterConfig:
         TargetArn: !GetAtt DeadLetterQueue.Arn
-      Description: grfn-glacier-restore-notifications $SHA1
       Environment:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "restore_notifications": {
-                "db_table": "${GlacierRequestsTable}",
-                "email": {
-                  "from_email": "ASF User Services <${SenderEmailAddress}>",
-                  "download_path": "https://${Hostname}/door/download/{0}",
-                  "unsubscribe_url": "https://${Hostname}/door/userprofile"
-                },
-                "email_queue": !Ref EmailQueue.Arn
+              "log_level'": "${LogLevel}",
+              "emails": {
+                "email_queue_url": "${EmailQueue}",
+                "wait_time_in_seconds": 60,
+                "max_messages_per_receive": 10,
+                "email_content": {
+                  "users_table": "${UsersTable}",
+                  "from_email": "${SenderEmailAddress}",
+                  "email_body": {
+                    "hostname": "${Hostname}",
+                    "template_file": "acknowledgement.template"
+                  }
+                }
               }
             }
       Handler: main.lambda_handler
       MemorySize: 128
       Role: !GetAtt Role.Arn
       Runtime: python2.7
-      Timeout: 20
+      Timeout: 60
 
   Schedule:
     Type: AWS::Events::Rule
