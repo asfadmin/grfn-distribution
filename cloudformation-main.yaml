@@ -198,3 +198,17 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+  UserPreferencesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Name}-user-preferences"
+      AttributeDefinitions:
+      - AttributeName: user
+      AttributeType: S
+    KeySchema:
+    - KeyType: HASH
+      AttributeName: user
+    ProvisionedThroughput:
+      WriteCapacityUnits: 1
+      ReadCapacityUnits: 1
