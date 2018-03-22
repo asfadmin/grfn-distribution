@@ -38,15 +38,16 @@ def get_user(user_id, table):
 
     item = results['Item']
     user = {
+        'user_id': user_id,
         'email_address': item['email_address']['S'],
     }
     if 'last_acknowledgement' in item:
-        user['last_acknowledged'] = item['last_acknowledgement']['S']
+        user['last_acknowledgement'] = item['last_acknowledgement']['S']
     return user
 
 
 def update_last_acknowledgement_for_user(user_id, table):
-    primary_key = {'S': user_id}
+    primary_key = {'user_id': {'S': user_id}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,

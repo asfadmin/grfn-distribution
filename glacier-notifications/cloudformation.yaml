@@ -116,7 +116,7 @@ Resources:
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",
-                  "message_interval_in_minutes": "${MessageIntervalInMinutes}",
+                  "message_interval_in_minutes": ${MessageIntervalInMinutes},
                   "from_description": "${SenderDescription}",
                   "from_email": "${SenderEmailAddress}",
                   "email_body": {
