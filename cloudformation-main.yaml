@@ -74,6 +74,7 @@ Resources:
         ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
         BundleObjectsTable: !Ref BundleObjectsTable
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-availability/cloudformation.yaml
 
 

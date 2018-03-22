@@ -28,6 +28,9 @@ Parameters:
   BundleObjectsTable:
     Type: String
 
+  EmailQueueName:
+    Type: String
+
 Outputs:
 
   LambdaName:
@@ -70,7 +73,9 @@ Resources:
             Resource: !GetAtt LogGroup.Arn
           - Effect: Allow
             Action: sqs:SendMessage
-            Resource: !GetAtt DeadLetterQueue.Arn
+            Resource:
+            - !GetAtt DeadLetterQueue.Arn
+            - !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
           - Effect: Allow
             Action: dynamodb:Query
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
@@ -100,7 +105,8 @@ Resources:
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
                 "bundles_table": "${BundlesTable}",
-                "bundle_objects_table": "${BundleObjectsTable}"
+                "bundle_objects_table": "${BundleObjectsTable}",
+                "email_queue_name": "${EmailQueueName}"
               }
             }
       Handler: main.lambda_handler
