@@ -31,7 +31,7 @@ def get_user(user_id, table):
     results = dynamodb.get_item(
         TableName=table,
         Key={'user_id': {'S': user_id}},
-        ProjectionExpression='email_address, last_acknowledgement',
+        ProjectionExpression='email_address, last_acknowledgement, subscribed_to_emails',
     )
     if 'Item' not in results:
         return None
@@ -43,6 +43,10 @@ def get_user(user_id, table):
     }
     if 'last_acknowledgement' in item:
         user['last_acknowledgement'] = item['last_acknowledgement']['S']
+    if 'subscribed_to_emails' in item:
+        user['subscribed_to_emails'] = item['subscribed_to_emails']['BOOL']
+    else:
+        user['subscribed_to_emails'] = False
     return user
 
 
@@ -60,13 +64,13 @@ def update_last_acknowledgement_for_user(user_id, table):
 
 def send_acknowledgement_email(data, config):
     user = get_user(data['user_id'], config['users_table'])
-    cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
-    if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
-        log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
-        ses_message = build_acknowledgement_email(user['email_address'], config)
-        ses.send_email(**ses_message)
-        update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
-    #TODO log if we sent anything
+    if user['subscribed_to_emails']:
+        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+        if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
+            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
+            ses_message = build_acknowledgement_email(user['email_address'], config)
+            ses.send_email(**ses_message)
+            update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
 
 
 def build_acknowledgement_email(to_email, config):

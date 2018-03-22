@@ -45,6 +45,10 @@ Parameters:
   Hostname:
     Type: String
 
+  AcknowledgementEmailIntervalInMinutes:
+    Type: Number
+    Default: 720
+
   Maturity:
     Description: Value for MATURITY tag to be applied to all taggable resources
     Type: String
@@ -87,4 +91,5 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
+        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
       TemplateURL: cloudformation-main.yaml
