@@ -73,9 +73,7 @@ Resources:
             Resource: !GetAtt LogGroup.Arn
           - Effect: Allow
             Action: sqs:SendMessage
-            Resource:
-            - !GetAtt DeadLetterQueue.Arn
-            - !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
+            Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: dynamodb:Query
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
@@ -88,6 +86,11 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+          - Effect: Allow
+            Action:
+            - sqs:GetQueueUrl
+            - sqs:SendMessage
+            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
 
   Lambda:
     Type: AWS::Lambda::Function
