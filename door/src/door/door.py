@@ -83,6 +83,7 @@ def download_redirect(file_name):
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
 
+    update_email_address_for_user(get_environ_value('URS_USERID'), get_environ_value('URS_EMAIL'), app.config['users_table'])
     return redirect(url_for('status'))
 
 
@@ -112,6 +113,19 @@ def get_user_preference(table, user_id):
     if 'Item' not in response or 'subscribed_to_emails' not in response['Item']:
         return True
     return response['Item']['subscribed_to_emails']['BOOL']
+
+
+def update_email_address_for_user(user_id, email_address, table):
+    dynamodb = boto3.client('dynamodb')
+    primary_key = {'user_id': {'S': user_id}}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set email_address = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': email_address},
+        },
+    )
 
 
 def get_environ_value(key):
