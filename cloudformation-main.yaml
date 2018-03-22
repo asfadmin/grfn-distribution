@@ -51,6 +51,10 @@ Parameters:
     Type: Number
     Default: 7
 
+  AcknowledgementEmailIntervalInMinutes:
+    Type: Number
+    Default: 720
+
 Outputs:
 
   AppUrl:
@@ -110,6 +114,7 @@ Resources:
         LogLevel: !Ref LogLevel
         UsersTable: !Ref UsersTable
         Hostname: !Ref Hostname
+        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
       TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:

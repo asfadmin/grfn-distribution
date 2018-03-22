@@ -30,9 +30,9 @@ Parameters:
     Type: String
     Default: "ASF User Services"
 
-  MessageIntervalInMinutes:
+  AcknowledgementEmailIntervalInMinutes:
     Type: Number
-    Default: 5
+    Default: 720
 
 Outputs:
 
@@ -116,7 +116,7 @@ Resources:
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",
-                  "message_interval_in_minutes": ${MessageIntervalInMinutes},
+                  "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
                   "from_description": "${SenderDescription}",
                   "from_email": "${SenderEmailAddress}",
                   "email_body": {
