@@ -38,20 +38,35 @@ def get_user(user_id, table):
 
     item = results['Item']
     user = {
+        'user_id': user_id,
         'email_address': item['email_address']['S'],
     }
     if 'last_acknowledgement' in item:
-        user['last_acknowledged'] = item['last_acknowledgement']['S']
+        user['last_acknowledgement'] = item['last_acknowledgement']['S']
     return user
+
+
+def update_last_acknowledgement_for_user(user_id, table):
+    primary_key = {'user_id': {'S': user_id}}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set last_acknowledgement = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': str(datetime.utcnow())},
+        },
+    )
 
 
 def send_acknowledgement_email(data, config):
     user = get_user(data['user_id'], config['users_table'])
-    if True: #TODO not 'last_acknowledgement' not in user or user['last_acknowledgement'] < datetime.utcnow() - config['frequency']:
+    cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+    if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
+        log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
         ses_message = build_acknowledgement_email(user['email_address'], config)
         ses.send_email(**ses_message)
+        update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
     #TODO log if we sent anything
-    #TODO update last acknowledged date for user
 
 
 def build_acknowledgement_email(to_email, config):
