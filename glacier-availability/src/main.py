@@ -9,6 +9,7 @@ import boto3
 log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
+sqs = boto3.client('sqs')
 
 
 def setup():
@@ -88,6 +89,17 @@ def add_object(object_key, table):
     )
 
 
+def submit_email_to_queue(user_id, queue_name):
+    queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
+    payload = {
+        'type': 'acknowledgement',
+        'data': {
+            'user_id': user_id,
+        },
+    }
+    sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
+
+
 def process_availability(event, config):
     available = True
     obj = get_s3_object(config['bucket'], event['object_key'])
@@ -99,6 +111,7 @@ def process_availability(event, config):
             if not bundle_id:
                 bundle_id = create_new_bundle_for_user(event['user_id'], config['bundles_table'])
             add_object_to_bundle(obj.key, bundle_id, config['bundle_objects_table'])
+            submit_email_to_queue(event['user_id'], config['email_queue_name'])
         if restore_status == 'not_available': # issue restore request
             add_object(obj.key, config['objects_table'])
     return {'available': available}

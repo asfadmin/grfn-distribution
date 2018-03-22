@@ -32,8 +32,8 @@ Parameters:
 
 Outputs:
 
-  EmailQueue:
-    Value: !Ref EmailQueue
+  EmailQueueName:
+    Value: !GetAtt EmailQueue.QueueName
 
 Resources:
 
