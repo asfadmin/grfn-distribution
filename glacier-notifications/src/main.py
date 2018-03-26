@@ -46,7 +46,7 @@ def get_user(user_id, table):
     if 'subscribed_to_emails' in item:
         user['subscribed_to_emails'] = item['subscribed_to_emails']['BOOL']
     else:
-        user['subscribed_to_emails'] = False
+        user['subscribed_to_emails'] = True
     return user
 
 
@@ -70,7 +70,9 @@ def send_acknowledgement_email(data, config):
             log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
             ses_message = build_acknowledgement_email(user['email_address'], config)
             ses.send_email(**ses_message)
-            update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
+            update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
+    else:
+        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
 
 
 def build_acknowledgement_email(to_email, config):
