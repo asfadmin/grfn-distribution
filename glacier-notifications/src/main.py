@@ -102,6 +102,8 @@ def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
     if payload['type'] == 'acknowledgement':
         send_acknowledgement_email(payload['data'], config)
+    else:
+        raise Exception('Invalid email type: {0}'.format(payload['type']))
 
 
 def process_notifications(config):
