@@ -1,0 +1,28 @@
+<html>
+
+<header>
+    <a href="https://www.asf.alaska.edu/"><img style="max-height: 37px;" src="https://vertex.daac.asf.alaska.edu/static/images/alaska_satellite_facility_1000.png"></a>
+</header>
+
+<body>
+<p />
+All of the GRFN products you requested from ASF have been retrieved from long-term storage for you.  They will remain available to download from short-term storage for {{ retention_days }} days.  The products you requested were as follows:
+
+<p />
+{% for object in objects if object.available == 'yes' %}
+    {% if loop.first %}Available:<UL>{% endif %}
+    <li><a href="https://{{ hostname }}/door/download/{{ objects.key }}">{{ objects.key }}</a> available through {{ objects.expiration_date }} UTC</li>
+    {% if loop.last %}</UL>{% endif %}
+{% endfor %}
+
+<p />
+Thank you for using radar data from the Alaska Satellite Facility.
+
+
+<Unsubscribe> from emails
+<p />
+<a href="https://{{ hostname }}/door/userprofile">Unsubscribe</a> from emails
+
+<p />
+</body>
+</html>

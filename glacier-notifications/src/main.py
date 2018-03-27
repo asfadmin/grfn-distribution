@@ -20,12 +20,18 @@ def setup():
 
 
 def build_acknowledgement_email_body(config):
-    with open(config['template_file'], 'r') as t:
+    with open(config['acknowledgement_template_file'], 'r') as t:
         template_text = t.read()
     template = Template(template_text)
     email_body = template.render(hostname=config['hostname'])
     return email_body
 
+def build_availability_email_body(config):
+    with open(config['availability_template_file'], 'r') as t:
+        template_text = t.read()
+    template = Template(template_text)
+    email_body = template.render(hostname=config['hostname'])
+    return email_body
 
 def get_user(user_id, table):
     results = dynamodb.get_item(
@@ -72,6 +78,15 @@ def send_acknowledgement_email(data, config):
     else:
         log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
 
+def send_availibility_email(data, config):
+    user = get_user(data['user_id'], config['users_table'])
+    if user['subscribed_to_emails']:
+        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+        if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
+            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
+            ses_message = build_acknowledgement_email(user['email_address'], config)
+            ses.send_email(**ses_message)
+            update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
 
 def build_acknowledgement_email(to_email, config):
     today = date.strftime(datetime.utcnow(), '%B %d, %Y')
@@ -97,14 +112,39 @@ def build_acknowledgement_email(to_email, config):
     }
     return ses_message
 
+def build_availability_email(to_email, config):
+    today = date.strftime(datetime.utcnow(), '%B %d, %Y')
+    from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
+    subject = 'SAR Products Requested {0} UTC'.format(today)
+    email_body = build_availability_email_body(config['email_body'])
+
+    ses_message = {
+        'Source': from_email,
+        'Destination': {
+            'ToAddresses': [to_email],
+        },
+        'Message': {
+            'Subject': {
+                'Data': subject,
+            },
+            'Body': {
+                'Html': {
+                    'Data': email_body,
+                },
+            },
+        },
+    }
+    return ses_message
+
 
 def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
     if payload['type'] == 'acknowledgement':
         send_acknowledgement_email(payload['data'], config)
-    else:
+    elif payload['type'] == 'availability':
+        send_availability_email(payload['data'], config)
+    else
         raise Exception('Invalid email type: {0}'.format(payload['type']))
-
 
 def process_notifications(config):
     queue = sqs.Queue(config['email_queue_url'])
