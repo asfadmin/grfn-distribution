@@ -2,39 +2,14 @@ import json
 from os import environ
 from logging import getLogger
 import boto3
-from datetime import datetime, timedelta
-from dateutil.parser import parse
+from datetime import datetime, timedelta, date
+from jinja2 import Template
 
 
 log = getLogger()
-
-
-EMAIL_TEMPLATE_NEW = '''
-Newly available data to download:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_OLD = '''
-Already available for download:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_WAIT = '''
-Data request still in process:
-<UL>
-{0}
-</UL>
-<p>
-'''
-EMAIL_TEMPLATE_FOOTER = '''
-Thank you,<br>ASF DAAC
-<p>
-<a href="{0}">Unsubscribe</a> from email notifications
-'''
+ses = boto3.client('ses')
+sqs = boto3.resource('sqs')
+dynamodb = boto3.client('dynamodb')
 
 
 def setup():
@@ -44,55 +19,74 @@ def setup():
     return config
 
 
-def get_restore_requests(table_name):
-    dynamodb = boto3.client('dynamodb')
-    response = dynamodb.scan(TableName=table_name)
-    return response['Items']
+def build_acknowledgement_email_body(config):
+    with open(config['template_file'], 'r') as t:
+        template_text = t.read()
+    template = Template(template_text)
+    email_body = template.render(hostname=config['hostname'])
+    return email_body
 
 
-def put_restore_date(table_name, request):
-    dynamodb = boto3.client('dynamodb')
-    primary_key = {'bucket': request['bucket'], 'key': request['key']}
-    val = {'S':  str(datetime.now()) }
+def get_user(user_id, table):
+    results = dynamodb.get_item(
+        TableName=table,
+        Key={'user_id': {'S': user_id}},
+        ProjectionExpression='email_address, last_acknowledgement, subscribed_to_emails',
+    )
+    if 'Item' not in results:
+        return None
+
+    item = results['Item']
+    user = {
+        'user_id': user_id,
+        'email_address': item['email_address']['S'],
+        'last_acknowledgement': item['last_acknowledgement']['S'],
+        'subscribed_to_emails': item['subscribed_to_emails']['BOOL'],
+    }
+    return user
+
+
+def update_last_acknowledgement_for_user(user_id, table):
+    primary_key = {'user_id': {'S': user_id}}
     dynamodb.update_item(
-        TableName=table_name,
+        TableName=table,
         Key=primary_key,
-        UpdateExpression='set restore_date = :1',
-        ExpressionAttributeValues={':1': val},
+        UpdateExpression='set last_acknowledgement = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': str(datetime.utcnow())},
+        },
     )
 
 
-def delete_request_record(table_name, request):
-    dynamodb = boto3.client('dynamodb')
-    primary_key = {'bucket': request['bucket'], 'key': request['key']}
-    dynamodb.delete_item(TableName=table_name, Key=primary_key)
+def send_acknowledgement_email(data, config):
+    user = get_user(data['user_id'], config['users_table'])
+    if user['subscribed_to_emails']:
+        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+        if user['last_acknowledgement'] < cutoff_date:
+            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
+            ses_message = build_acknowledgement_email(user['email_address'], config)
+            ses.send_email(**ses_message)
+            update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
+        else:
+            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
+    else:
+        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
 
 
-def send_notification_for_file(to, files, config):
-    ses = boto3.client('ses')
-    new, old, wait = [], [], []
-    for record in files['new']:
-        new.append("<li></b>"+config['download_path'].format(record['key']['S'])+"</b></li>")
-    for record in files['old']:
-        old.append("<li>"+config['download_path'].format(record['key']['S'])+"</li>")
-    for record in files['wait']:
-        wait.append("<li>{0}</li>".format(record['key']['S']))
-
-    email_body = EMAIL_TEMPLATE_NEW.format("<br>\n".join(new))
-    if files['old']:
-        email_body += EMAIL_TEMPLATE_OLD.format("<br>\n".join(old))
-    if files['wait']:
-        email_body += EMAIL_TEMPLATE_WAIT.format("<br>\n".join(wait))
-    email_body += EMAIL_TEMPLATE_FOOTER.format(config['unsubscribe_url'])
+def build_acknowledgement_email(to_email, config):
+    today = date.strftime(datetime.utcnow(), '%B %d, %Y')
+    from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
+    subject = 'SAR Products Requested {0} UTC'.format(today)
+    email_body = build_acknowledgement_email_body(config['email_body'])
 
     ses_message = {
-        'Source': config['from_email'],
+        'Source': from_email,
         'Destination': {
-            'ToAddresses': [to],
+            'ToAddresses': [to_email],
         },
         'Message': {
             'Subject': {
-                'Data': 'SAR Product Available to Download',
+                'Data': subject,
             },
             'Body': {
                 'Html': {
@@ -101,61 +95,34 @@ def send_notification_for_file(to, files, config):
             },
         },
     }
-
-    ses.send_email(**ses_message)
-
-
-def get_object(request):
-    s3 = boto3.resource('s3')
-    bucket = request['bucket']['S']
-    key = request['key']['S']
-    obj = s3.Object(bucket, key)
-    return obj
+    return ses_message
 
 
-def is_available(obj):
-    return obj.storage_class != 'GLACIER' or (obj.restore and 'ongoing-request="false"' in obj.restore)
+def process_sqs_message(sqs_message, config):
+    payload = json.loads(sqs_message.body)
+    if payload['type'] == 'acknowledgement':
+        send_acknowledgement_email(payload['data'], config)
+    else:
+        raise Exception('Invalid email type: {0}'.format(payload['type']))
 
 
-def is_new(request):
-    return not 'restore_date' in request
+def process_notifications(config):
+    queue = sqs.Queue(config['email_queue_url'])
 
+    while True:
+        messages = queue.receive_messages(MaxNumberOfMessages=config['max_messages_per_receive'], WaitTimeSeconds=config['wait_time_in_seconds'])
+        if not messages:
+            log.info('No messages found.  Exiting.')
+            break
 
-def is_old(request, old_threshold):
-    if is_new(request):
-        return False
-    return parse(request['restore_date']['S']) < ( datetime.now() - timedelta(hours=old_threshold) )
-
-
-def process_restore_notifications(config):
-    emails = {}
-    for request in get_restore_requests(config['db_table']):
-        obj = get_object(request)
-        addresses = request['email_addresses']['SS']
-        if is_old(request, 24):
-            delete_request_record(config['db_table'], request)
-            continue
-        for address in addresses:
-            if not address in emails:
-                emails[address] = { 'new': [], 'old': [], 'wait': [] }
-        if is_new(request):
-            if is_available(obj):
-                put_restore_date(config['db_table'], request)
-                for address in addresses:
-                    emails[address]['new'].append( request )
-            else:
-                for address in addresses:
-                    emails[address]['wait'].append( request )
-        else:
-            for address in addresses:
-                emails[address]['old'].append( request )
-
-    for email in emails:
-        if emails[email]['new']:
-            log.warning('Sending notifications to %s', email)
-            send_notification_for_file(email, emails[email], config['email'])
+        for sqs_message in messages:
+            try:
+                process_sqs_message(sqs_message, config['email_content'])
+                sqs_message.delete()
+            except Exception as e:
+                log.exception('Failed to process message')
 
 
 def lambda_handler(event, context):
     config = setup()
-    process_restore_notifications(config['restore_notifications'])
+    process_notifications(config['notifications'])
