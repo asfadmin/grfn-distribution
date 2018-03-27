@@ -67,6 +67,8 @@ def send_acknowledgement_email(data, config):
             ses_message = build_acknowledgement_email(user['email_address'], config)
             ses.send_email(**ses_message)
             update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
+        else:
+            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
     else:
         log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
 
