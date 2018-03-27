@@ -6,12 +6,12 @@
 
 <body>
 <p />
-All of the GRFN products you requested from ASF have been retrieved from long-term storage for you.  They will remain available to download from short-term storage for {{ grfn_glacier_retrieve_time }} days.  The products you requested were as follows:
+All of the GRFN products you requested from ASF have been retrieved from long-term storage for you.  They will remain available to download from short-term storage for {{ retention_days }} days.  The products you requested were as follows:
 
 <p />
-{% for object in objects if object.available =='yes' %}
+{% for object in objects if object.available == 'yes' %}
     {% if loop.first %}Available:<UL>{% endif %}
-    <li><a href="{{ url_for('download_redirect', file_name=object.object_key) }}">{{ object.object_key }}</a> available through {{ object.expiration_date }} UTC</li>
+    <li><a href="https://{{ hostname }}/door/download/{{ objects.key }}">{{ objects.key }}</a> available through {{ objects.expiration_date }} UTC</li>
     {% if loop.last %}</UL>{% endif %}
 {% endfor %}
 
@@ -21,7 +21,7 @@ Thank you for using radar data from the Alaska Satellite Facility.
 
 <Unsubscribe> from emails
 <p />
-<a href="{{ grfn_status_unsub_url }}">Unsubscribe</a> from emails
+<a href="https://{{ hostname }}/door/userprofile">Unsubscribe</a> from emails
 
 <p />
 </body>
