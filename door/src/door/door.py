@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -24,38 +25,48 @@ def index():
 
 @app.route('/status')
 def status():
+    user = get_user(app.config['users_table'], get_environ_value('URS_USERID'))
     data = {
         'retention_days': app.config['retention_days'],
-        'subscribed_to_emails': get_user_preference(app.config['users_table'], get_environ_value('URS_USERID')),
-        'objects': get_objects_for_user(app.config['status_lambda'], get_environ_value('URS_USERID')),
+        'subscribed_to_emails': user['subscribed_to_emails'],
+        'objects': get_objects_for_user(app.config['status_lambda'], user['user_id']),
     }
     return render_template('status.html', data=data), 200
 
 
-@app.route('/userprofile', methods=['GET', 'POST'])
-def user_profile():
-    g.perf = ''
+@app.route('/userprofile', methods=['POST'])
+def set_user_profile():
     user_id = get_environ_value('URS_USERID')
     table = app.config['users_table']
+    user = get_user(table, user_id)
+    user['subscribed_to_emails'] = ('subscribed_to_emails' in request.form)
+    update_user(table, user)
+    return redirect(url_for('show_user_profile'))
 
-    if request.method == 'POST':
-        if not request.form:
-            put_user_preference(table, 0, user_id)
-        else:
-            # Leaving this lean as we only have one checkbox
-            put_user_preference(table, 1, user_id)
-            g.perf = 'checked'
-        return render_template('userprofile.html'), 200
 
-    response = get_user_preference(table, user_id)
-    if response is None:
-        put_user_preference(table, 1, user_id)
-        g.perf = 'checked'
-    else:
-        if response is True:
-            g.perf = 'checked'
+@app.route('/userprofile', methods=['GET'])
+def show_user_profile():
+    user = get_user(app.config['users_table'], get_environ_value('URS_USERID'))
+    return render_template('userprofile.html', user=user), 200
 
-    return render_template('userprofile.html'), 200
+
+@app.before_request
+def sync_user():
+    table = app.config['users_table']
+    user_id = get_environ_value('URS_USERID')
+    email_address = get_environ_value('URS_EMAIL')
+    user = get_user(table, user_id)
+    if not user:
+        user = {
+            'user_id': user_id,
+            'email_address': email_address,
+            'subscribed_to_emails': True,
+            'last_acknowledgement': str(datetime(1970, 1, 1)),
+        }
+        update_user(table, user)
+    elif user['email_address'] != email_address:
+        user['email_address'] = email_address
+        update_user(user)
 
 
 @app.route('/download/<file_name>')
@@ -83,7 +94,6 @@ def download_redirect(file_name):
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
 
-    update_email_address_for_user(get_environ_value('URS_USERID'), get_environ_value('URS_EMAIL'), app.config['users_table'])
     return redirect(url_for('status'))
 
 
@@ -93,39 +103,34 @@ def get_s3_object(bucket, key):
     return obj
 
 
-def put_user_preference(table, pref, user_id):
+def update_user(table, user):
     dynamodb = boto3.client('dynamodb')
-    primary_key = {'user_id': {'S': user_id}}
-    val = {'BOOL':  bool(pref)}
+    primary_key = {'user_id': {'S': user['user_id']}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set subscribed_to_emails =  :1',
-        ExpressionAttributeValues={':1': val},
+        UpdateExpression='set email_address = :1, subscribed_to_emails = :2, last_acknowledgement = :3',
+        ExpressionAttributeValues={
+            ':1': {'S': user['email_address']},
+            ':2': {'BOOL': user['subscribed_to_emails']},
+            ':3': {'S': user['last_acknowledgement']},
+        },
     )
 
 
-def get_user_preference(table, user_id):
+def get_user(table, user_id):
     dynamodb = boto3.client('dynamodb')
     primary_key = {'user_id': {'S': user_id}}
     response = dynamodb.get_item(TableName=table, Key=primary_key)
-
-    if 'Item' not in response or 'subscribed_to_emails' not in response['Item']:
-        return True
-    return response['Item']['subscribed_to_emails']['BOOL']
-
-
-def update_email_address_for_user(user_id, email_address, table):
-    dynamodb = boto3.client('dynamodb')
-    primary_key = {'user_id': {'S': user_id}}
-    dynamodb.update_item(
-        TableName=table,
-        Key=primary_key,
-        UpdateExpression='set email_address = :1',
-        ExpressionAttributeValues={
-            ':1': {'S': email_address},
-        },
-    )
+    if 'Item' not in response:
+        return None
+    user = {
+        'user_id': response['Item']['user_id']['S'],
+        'email_address': response['Item']['email_address']['S'],
+        'subscribed_to_emails': response['Item']['subscribed_to_emails']['BOOL'],
+        'last_acknowledgement': response['Item']['last_acknowledgement']['S'],
+    }
+    return user
 
 
 def get_environ_value(key):
@@ -146,6 +151,7 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
         ExpiresIn=expire_time_in_seconds,
     )
     return url
+
 
 def get_objects_for_user(status_lambda, user_id):
     payload = {'user_id': user_id}
