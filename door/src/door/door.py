@@ -4,7 +4,7 @@ from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-from flask import Flask, g, redirect, render_template, request, abort, url_for
+from flask import Flask, redirect, render_template, request, abort, url_for
 
 app = Flask(__name__)
 s3_resource = boto3.resource('s3')
@@ -66,7 +66,7 @@ def sync_user():
         update_user(table, user)
     elif user['email_address'] != email_address:
         user['email_address'] = email_address
-        update_user(user)
+        update_user(table, user)
 
 
 @app.route('/download/<file_name>')
