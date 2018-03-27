@@ -32,9 +32,9 @@ Your requested data are being fetched from long-term storage.  Links will appear
 This page will refresh every minute.
 <p />
 {% if data.subscribed_to_emails %}
-<a href="{{ url_for('user_profile') }}">Unsubscribe</a> from email notifications
+<a href="{{ url_for('show_user_profile') }}">Unsubscribe</a> from email notifications
 {% else %}
-<a href="{{ url_for('user_profile') }}">Subscribe</a> to email notifications
+<a href="{{ url_for('show_user_profile') }}">Subscribe</a> to email notifications
 {% endif %}
 </body>
 </html>

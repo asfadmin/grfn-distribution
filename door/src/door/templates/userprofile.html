@@ -7,7 +7,7 @@
  <br>
 
 <form action="#" method="post">
-  <input type="checkbox" name="email" id="email" value="get_email" {{ g.perf }}>
+  <input type="checkbox" name="subscribed_to_emails" {% if user['subscribed_to_emails'] %}checked{% endif %}>
   <label for="email">Recieve Email Notifications</label>
   <br>
   <br>

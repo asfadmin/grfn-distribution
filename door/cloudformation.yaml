@@ -28,7 +28,7 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
-  UserPreferenceTable:
+  UsersTable:
     Type: String
 
   AvailabilityLambda:
@@ -151,7 +151,7 @@ Resources:
             Action:
             - dynamodb:GetItem
             - dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UserPreferenceTable}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
           - Effect: Allow
             Action: lambda:InvokeFunction
             Resource:
@@ -188,7 +188,7 @@ Resources:
               "aws_region": "${AWS::Region}",
               "bucket_name": "${PrivateBucket}",
               "expire_time_in_seconds": 15,
-              "user_preference_table": "${UserPreferenceTable}",
+              "users_table": "${UsersTable}",
               "availability_lambda": "${AvailabilityLambda}",
               "status_lambda": "${StatusLambda}",
               "retention_days": ${RetentionDays}

@@ -28,9 +28,6 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
-  UserPreferenceTable:
-    Type: String
-
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -53,6 +50,10 @@ Parameters:
   RetentionDays:
     Type: Number
     Default: 7
+
+  AcknowledgementEmailIntervalInMinutes:
+    Type: Number
+    Default: 720
 
 Outputs:
 
@@ -77,6 +78,7 @@ Resources:
         ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
         BundleObjectsTable: !Ref BundleObjectsTable
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-availability/cloudformation.yaml
 
 
@@ -104,6 +106,17 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-requests/cloudformation.yaml
 
+  GlacierNotificationsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-notifications"
+        LogLevel: !Ref LogLevel
+        UsersTable: !Ref UsersTable
+        Hostname: !Ref Hostname
+        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+      TemplateURL: glacier-notifications/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -113,7 +126,7 @@ Resources:
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
-        UserPreferenceTable: !Ref UserPreferenceTable
+        UsersTable: !Ref UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
@@ -198,3 +211,17 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Name}-users"
+      AttributeDefinitions:
+      - AttributeName: user_id
+        AttributeType: S
+      KeySchema:
+      - KeyType: HASH
+        AttributeName: user_id
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
