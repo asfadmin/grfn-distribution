@@ -40,13 +40,9 @@ def get_user(user_id, table):
     user = {
         'user_id': user_id,
         'email_address': item['email_address']['S'],
+        'last_acknowledgement': item['last_acknowledgement']['S'],
+        'subscribed_to_emails': item['subscribed_to_emails']['BOOL'],
     }
-    if 'last_acknowledgement' in item:
-        user['last_acknowledgement'] = item['last_acknowledgement']['S']
-    if 'subscribed_to_emails' in item:
-        user['subscribed_to_emails'] = item['subscribed_to_emails']['BOOL']
-    else:
-        user['subscribed_to_emails'] = True
     return user
 
 
@@ -66,7 +62,7 @@ def send_acknowledgement_email(data, config):
     user = get_user(data['user_id'], config['users_table'])
     if user['subscribed_to_emails']:
         cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
-        if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
+        if user['last_acknowledgement'] < cutoff_date:
             log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
             ses_message = build_acknowledgement_email(user['email_address'], config)
             ses.send_email(**ses_message)
