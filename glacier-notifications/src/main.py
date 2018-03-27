@@ -102,7 +102,6 @@ def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
     if payload['type'] == 'acknowledgement':
         send_acknowledgement_email(payload['data'], config)
-    #TODO trap errors
 
 
 def process_notifications(config):
@@ -115,8 +114,11 @@ def process_notifications(config):
             break
 
         for sqs_message in messages:
-            process_sqs_message(sqs_message, config['email_content'])
-            sqs_message.delete()
+            try:
+                process_sqs_message(sqs_message, config['email_content'])
+                sqs_message.delete()
+            except Exception as e:
+                log.exception('Failed to process message')
 
 
 def lambda_handler(event, context):
