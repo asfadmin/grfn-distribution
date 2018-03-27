@@ -41,16 +41,25 @@ Outputs:
 
 Resources:
 
-  DeadLetterQueue:
+  LambdaDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${Name}-dlq"
+      QueueName: !Sub "${Name}-lambda-dlq"
       MessageRetentionPeriod: 1209600
 
   EmailQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub "${Name}-email"
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  EmailDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Name}-email-dlq"
       MessageRetentionPeriod: 1209600
 
   LogGroup:
@@ -82,7 +91,7 @@ Resources:
             Resource: !GetAtt LogGroup.Arn
           - Effect: Allow
             Action: sqs:SendMessage
-            Resource: !GetAtt DeadLetterQueue.Arn
+            Resource: !GetAtt LambdaDeadLetterQueue.Arn
           - Effect: Allow
             Action:
             - sqs:GetQueueUrl
@@ -104,7 +113,7 @@ Resources:
       FunctionName: !Ref Name
       Code: src/
       DeadLetterConfig:
-        TargetArn: !GetAtt DeadLetterQueue.Arn
+        TargetArn: !GetAtt LambdaDeadLetterQueue.Arn
       Environment:
         Variables:
           CONFIG: !Sub |-
