@@ -3,13 +3,14 @@ from os import environ
 from logging import getLogger
 import boto3
 from datetime import datetime, timedelta, date
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
 
 
 log = getLogger()
 ses = boto3.client('ses')
 sqs = boto3.resource('sqs')
 dynamodb = boto3.client('dynamodb')
+lamb = boto3.client('lambda')
 
 
 def setup():
@@ -19,19 +20,12 @@ def setup():
     return config
 
 
-def build_acknowledgement_email_body(config):
-    with open(config['acknowledgement_template_file'], 'r') as t:
-        template_text = t.read()
-    template = Template(template_text)
-    email_body = template.render(hostname=config['hostname'])
-    return email_body
+def render(template_file, data):
+    loader = FileSystemLoader('.')
+    env = Environment(loader=loader)
+    template = env.get_template(template_file)
+    return template.render(data=data)
 
-def build_availability_email_body(config):
-    with open(config['availability_template_file'], 'r') as t:
-        template_text = t.read()
-    template = Template(template_text)
-    email_body = template.render(hostname=config['hostname'])
-    return email_body
 
 def get_user(user_id, table):
     results = dynamodb.get_item(
@@ -52,6 +46,16 @@ def get_user(user_id, table):
     return user
 
 
+def get_objects_for_user(user_id, status_lambda):
+    payload = {'user_id': user_id}
+    response = lamb.invoke(
+        FunctionName=status_lambda,
+        Payload=json.dumps(payload),
+    )
+    objects = json.loads(response['Payload'].read())
+    return objects
+
+
 def update_last_acknowledgement_for_user(user_id, table):
     primary_key = {'user_id': {'S': user_id}}
     dynamodb.update_item(
@@ -64,68 +68,19 @@ def update_last_acknowledgement_for_user(user_id, table):
     )
 
 
-def send_acknowledgement_email(data, config):
-    user = get_user(data['user_id'], config['users_table'])
-    if user['subscribed_to_emails']:
-        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
-        if user['last_acknowledgement'] < cutoff_date:
-            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
-            ses_message = build_acknowledgement_email(user['email_address'], config)
-            ses.send_email(**ses_message)
-            update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
-        else:
-            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
-    else:
-        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
-
-def send_availibility_email(data, config):
-    user = get_user(data['user_id'], config['users_table'])
-    if user['subscribed_to_emails']:
-        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
-        if 'last_acknowledgement' not in user or user['last_acknowledgement'] < cutoff_date:
-            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
-            ses_message = build_acknowledgement_email(user['email_address'], config)
-            ses.send_email(**ses_message)
-            update_last_acknowledgement_for_user(data['user_id'], config['users_table'])
-
-def build_acknowledgement_email(to_email, config):
+def build_ses_message(email_subject, email_body, email_address, config):
     today = date.strftime(datetime.utcnow(), '%B %d, %Y')
     from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
-    subject = 'SAR Products Requested {0} UTC'.format(today)
-    email_body = build_acknowledgement_email_body(config['email_body'])
+    final_subject = email_subject.format(today)
 
     ses_message = {
         'Source': from_email,
         'Destination': {
-            'ToAddresses': [to_email],
+            'ToAddresses': [email_address],
         },
         'Message': {
             'Subject': {
-                'Data': subject,
-            },
-            'Body': {
-                'Html': {
-                    'Data': email_body,
-                },
-            },
-        },
-    }
-    return ses_message
-
-def build_availability_email(to_email, config):
-    today = date.strftime(datetime.utcnow(), '%B %d, %Y')
-    from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
-    subject = 'SAR Products Requested {0} UTC'.format(today)
-    email_body = build_availability_email_body(config['email_body'])
-
-    ses_message = {
-        'Source': from_email,
-        'Destination': {
-            'ToAddresses': [to_email],
-        },
-        'Message': {
-            'Subject': {
-                'Data': subject,
+                'Data': final_subject,
             },
             'Body': {
                 'Html': {
@@ -139,12 +94,41 @@ def build_availability_email(to_email, config):
 
 def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
+    log.info('User ID: %s  Type: %s', payload['user_id'], payload['type'])
+    user = get_user(payload['user_id'], config['users_table'])
+
+    if not user['subscribed_to_emails']:
+        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
+        return
+
     if payload['type'] == 'acknowledgement':
-        send_acknowledgement_email(payload['data'], config)
+        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+        if cutoff_date <= user['last_acknowledgement']:
+            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
+            return
+
+    if payload['type'] == 'acknowledgement':
+        email_subject = 'SAR Products Requested {0} UTC'
+        template = 'acknowledgement.template'
+        data = {
+            'hostname': config['hostname']
+        }
     elif payload['type'] == 'availability':
-        send_availability_email(payload['data'], config)
-    else
-        raise Exception('Invalid email type: {0}'.format(payload['type']))
+        email_subject = 'SAR Products Available {0} UTC'
+        template = 'availability.template'
+        data = {
+            'hostname': config['hostname'],
+            'objects': get_objects_for_user(user['user_id'], config['status_lambda']),
+            'retention_days': config['retention_days'],
+        }
+
+    email_body = render(template, data)
+    ses_message = build_ses_message(email_subject, email_body, user['email_address'], config['sender'])
+    ses.send_email(**ses_message)
+
+    if payload['type'] == 'acknowledgement':
+        update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
+
 
 def process_notifications(config):
     queue = sqs.Queue(config['email_queue_url'])

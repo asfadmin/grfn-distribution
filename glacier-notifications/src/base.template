@@ -1,0 +1,13 @@
+<a href="https://www.asf.alaska.edu/"><img style="max-height: 37px;" src="https://vertex.daac.asf.alaska.edu/static/images/alaska_satellite_facility_1000.png"></a>
+
+<p />
+
+{% block content %}{% endblock %}
+
+<p />
+
+Thank you for requesting interferometric products from the Alaska Satellite Facility.
+
+<p />
+
+<a href="https://{{ data.hostname }}/door/userprofile">Unsubscribe</a> from email notifications

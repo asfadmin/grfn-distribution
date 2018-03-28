@@ -115,6 +115,8 @@ Resources:
         UsersTable: !Ref UsersTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+        RetentionDays: !Ref RetentionDays
+        StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
       TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
