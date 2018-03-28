@@ -19,6 +19,12 @@ Parameters:
   UsersTable:
     Type: String
 
+  BundleObjectsTable:
+    Type: String
+
+  ObjectsTable:
+    Type: String
+
   Hostname:
     Type: String
 
@@ -37,9 +43,6 @@ Parameters:
   RetentionDays:
     Type: Number
     Default: 7
-
-  StatusLambda:
-    Type: String
 
 Outputs:
 
@@ -111,11 +114,14 @@ Resources:
             - dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
           - Effect: Allow
+            Action: dynamodb:Query
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
+          - Effect: Allow
+            Action: dynamodb:GetItem
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
+          - Effect: Allow
             Action: ses:SendEmail
             Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${SenderEmailAddress}"
-          - Effect: Allow
-            Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -135,7 +141,8 @@ Resources:
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",
-                  "status_lambda": "${StatusLambda}",
+                  "bundle_objects_table": "${BundleObjectsTable}",
+                  "objects_table": "${ObjectsTable}",
                   "hostname": "${Hostname}",
                   "retention_days": ${RetentionDays},
                   "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
