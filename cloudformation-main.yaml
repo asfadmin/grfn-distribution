@@ -81,7 +81,6 @@ Resources:
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-availability/cloudformation.yaml
 
-
   GlacierStatusStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -94,7 +93,6 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-
   GlacierRequestsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -103,7 +101,9 @@ Resources:
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !Ref BundlesTable
         RetentionDays: !Ref RetentionDays
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-requests/cloudformation.yaml
 
   GlacierNotificationsStack:
