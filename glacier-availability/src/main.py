@@ -93,9 +93,7 @@ def submit_email_to_queue(user_id, queue_name):
     queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
     payload = {
         'type': 'acknowledgement',
-        'data': {
-            'user_id': user_id,
-        },
+        'user_id': user_id,
     }
     sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
 
