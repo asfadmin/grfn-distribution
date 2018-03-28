@@ -21,7 +21,7 @@ def setup():
 
 
 def render(template_file, data):
-    loader = FileSystemLoader('.')
+    loader = FileSystemLoader('templates/')
     env = Environment(loader=loader)
     template = env.get_template(template_file)
     return template.render(data=data)
@@ -109,13 +109,13 @@ def process_sqs_message(sqs_message, config):
 
     if payload['type'] == 'acknowledgement':
         email_subject = 'SAR Products Requested {0} UTC'
-        template = 'acknowledgement.template'
+        template = 'acknowledgement.html'
         data = {
             'hostname': config['hostname']
         }
     elif payload['type'] == 'availability':
         email_subject = 'SAR Products Available {0} UTC'
-        template = 'availability.template'
+        template = 'availability.html'
         data = {
             'hostname': config['hostname'],
             'objects': get_objects_for_user(user['user_id'], config['status_lambda']),
