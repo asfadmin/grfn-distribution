@@ -22,9 +22,15 @@ Parameters:
   ObjectsTable:
     Type: String
 
+  BundlesTable:
+    Type: String
+
   RetentionDays:
     Type: Number
     Default: 7
+
+  EmailQueueName:
+    Type: String
 
 Resources:
 
@@ -69,7 +75,14 @@ Resources:
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/availability"
           - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
+            Resource:
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
+          - Effect: Allow
+            Action:
+            - sqs:GetQueueUrl
+            - sqs:SendMessage
+            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
           - Effect: Allow
             Action:
             - s3:GetObject
@@ -91,6 +104,8 @@ Resources:
               "restore_requests": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
+                "bundles_table": "${BundlesTable}",
+                "email_queue_name": "${EmailQueueName}",
                 "restore": {
                     "tier": "Expedited",
                     "retention_days": ${RetentionDays}

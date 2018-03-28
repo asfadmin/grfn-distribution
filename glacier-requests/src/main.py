@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
+sqs = boto3.client('sqs')
 
 
 def setup():
@@ -78,6 +79,44 @@ def process_restore_requests(config):
         if status == 'available':
             expiration_date = get_expiration_date(obj.restore)
             update_object(config['objects_table'], object_key, expiration_date)
+
+    completed_bundles = get_completed_bundles(config['bundles_table'])
+    for bundle in completed_bundles:
+        close_bundle(bundle['bundle_id'], config['bundles_table'])
+        send_sqs_message(bundle, config['email_queue_name'])
+
+
+def close_bundle(bundle_id, table):
+    primary_key = {'bundle_id': {'S': bundle_id}}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set close_date = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': str(datetime.utcnow())},
+        },
+    )
+
+
+def send_sqs_message(bundle, queue_name):
+    queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
+    payload = {
+        'type': 'availability',
+        'user_id': bundle['user_id'],
+        'bundle_id': bundle['bundle_id'],
+    }
+    sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
+
+
+def get_completed_bundles(table):
+    #TODO implement
+    completed_bundles = [
+        {
+            'bundle_id': '02b743dd-efb4-45c1-bff6-0039ee139c19',
+            'user_id': 'asjohnston',
+        },
+    ]
+    return completed_bundles
 
 
 def restore_object(obj, config):
