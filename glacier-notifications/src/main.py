@@ -1,6 +1,7 @@
 import json
 from os import environ
 from logging import getLogger
+from operator import itemgetter
 import boto3
 from datetime import datetime, timedelta, date
 from jinja2 import Environment, FileSystemLoader
@@ -21,7 +22,7 @@ def setup():
 
 
 def render(template_file, data):
-    loader = FileSystemLoader('.')
+    loader = FileSystemLoader('templates/')
     env = Environment(loader=loader)
     template = env.get_template(template_file)
     return template.render(data=data)
@@ -46,13 +47,47 @@ def get_user(user_id, table):
     return user
 
 
-def get_objects_for_user(user_id, status_lambda):
-    payload = {'user_id': user_id}
-    response = lamb.invoke(
-        FunctionName=status_lambda,
-        Payload=json.dumps(payload),
+def get_object(object_key, table):
+    results = dynamodb.get_item(
+        TableName=table,
+        Key={'object_key': {'S': object_key}},
+        ProjectionExpression='object_key, expiration_date',
     )
-    objects = json.loads(response['Payload'].read())
+    item = results['Item']
+    obj = {
+        'object_key': item['object_key']['S'],
+        'expiration_date': item['expiration_date']['S']
+    }
+    return obj
+
+
+def get_bundle_objects(bundle_id, table):
+    results = dynamodb.query(
+        TableName=table,
+        KeyConditionExpression='bundle_id = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': bundle_id},
+        },
+        ProjectionExpression='object_key, request_date',
+    )
+    bundle_objects = [
+        {
+            'object_key': item['object_key']['S'],
+            'request_date': item['request_date']['S'],
+        }
+        for item in results['Items']
+    ]
+    return bundle_objects
+
+
+def get_objects_for_bundle(bundle_id, bundle_objects_table, objects_table):
+    objects = []
+    bundle_objects = get_bundle_objects(bundle_id, bundle_objects_table)
+    for bundle_object in bundle_objects:
+        obj = get_object(bundle_object['object_key'], objects_table)
+        obj['request_date'] = bundle_object['request_date']
+        objects.append(obj)
+    objects.sort(key=itemgetter('request_date'), reverse=True)
     return objects
 
 
@@ -109,16 +144,16 @@ def process_sqs_message(sqs_message, config):
 
     if payload['type'] == 'acknowledgement':
         email_subject = 'SAR Products Requested {0} UTC'
-        template = 'acknowledgement.template'
+        template = 'acknowledgement.html'
         data = {
             'hostname': config['hostname']
         }
     elif payload['type'] == 'availability':
         email_subject = 'SAR Products Available {0} UTC'
-        template = 'availability.template'
+        template = 'availability.html'
         data = {
             'hostname': config['hostname'],
-            'objects': get_objects_for_user(user['user_id'], config['status_lambda']),
+            'objects': get_objects_for_bundle(payload['bundle_id'], config['bundle_objects_table'], config['objects_table']),
             'retention_days': config['retention_days'],
         }
 

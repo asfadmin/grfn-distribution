@@ -114,10 +114,11 @@ Resources:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
         UsersTable: !Ref UsersTable
+        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
         RetentionDays: !Ref RetentionDays
-        StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
       TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
