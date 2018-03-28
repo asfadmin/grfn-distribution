@@ -1,0 +1,13 @@
+{% extends "base.template" %}
+{% block content %}
+
+All of the interferometric products you requested from the Alaska Satellite Facility have been retrieved from long-term storage. These products will remain available to download from short-term storage for {{ data.retention_days }} days.
+
+<p />
+<UL>
+{% for object in data.objects %}
+    <li><a href="https://{{ data.hostname }}/door/download/{{ object.object_key }}">{{ object.object_key }}</a> available through {{ object.expiration_date }} UTC</li>
+{% endfor %}
+</UL>
+
+{% endblock %}

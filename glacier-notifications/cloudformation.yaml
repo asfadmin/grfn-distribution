@@ -34,6 +34,13 @@ Parameters:
     Type: Number
     Default: 720
 
+  RetentionDays:
+    Type: Number
+    Default: 7
+
+  StatusLambda:
+    Type: String
+
 Outputs:
 
   EmailQueueName:
@@ -125,12 +132,13 @@ Resources:
                 "max_messages_per_receive": 10,
                 "email_content": {
                   "users_table": "${UsersTable}",
+                  "status_lambda": "${StatusLambda}",
+                  "hostname": "${Hostname}",
+                  "retention_days": ${RetentionDays},
                   "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
-                  "from_description": "${SenderDescription}",
-                  "from_email": "${SenderEmailAddress}",
-                  "email_body": {
-                    "hostname": "${Hostname}",
-                    "template_file": "acknowledgement.template"
+                  "sender": {
+                    "from_description": "${SenderDescription}",
+                    "from_email": "${SenderEmailAddress}"
                   }
                 }
               }
