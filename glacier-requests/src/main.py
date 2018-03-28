@@ -118,8 +118,6 @@ def get_open_bundles(table):
         },
         ProjectionExpression='bundle_id,user_id',
     )
-    if not results['Items']:
-        return None
     return [{'bundle_id': item['bundle_id']['S'], 'user_id': item['user_id']['S']} for item in results['Items']]
 
 
