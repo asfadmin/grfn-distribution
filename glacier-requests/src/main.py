@@ -80,10 +80,11 @@ def process_restore_requests(config):
             expiration_date = get_expiration_date(obj.restore)
             update_object(config['objects_table'], object_key, expiration_date)
 
-    completed_bundles = get_completed_bundles(config['bundles_table'])
-    for bundle in completed_bundles:
-        close_bundle(bundle['bundle_id'], config['bundles_table'])
-        send_sqs_message(bundle, config['email_queue_name'])
+    open_bundles = get_open_bundles(config['bundles_table'])
+    for bundle in open_bundles:
+        if bundle_complete(bundle['bundle_id'], config['bundle_objects_table'], config['objects_table']):
+            close_bundle(bundle['bundle_id'], config['bundles_table'])
+            send_sqs_message(bundle, config['email_queue_name'])
 
 
 def close_bundle(bundle_id, table):
@@ -108,15 +109,47 @@ def send_sqs_message(bundle, queue_name):
     sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
 
 
-def get_completed_bundles(table):
-    #TODO implement
-    completed_bundles = [
-        {
-            'bundle_id': '02b743dd-efb4-45c1-bff6-0039ee139c19',
-            'user_id': 'asjohnston',
+def get_open_bundles(table):
+    results = dynamodb.scan(
+        TableName=table,
+        FilterExpression='close_date = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': 'none'},
         },
-    ]
-    return completed_bundles
+        ProjectionExpression='bundle_id,user_id',
+    )
+    if not results['Items']:
+        return None
+    return [{'bundle_id': item['bundle_id']['S'], 'user_id': item['user_id']['S']} for item in results['Items']]
+
+
+def get_objects_for_bundle(bundle_id, table):
+    results = dynamodb.query(
+        TableName=table,
+        KeyConditionExpression='bundle_id = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': bundle_id},
+        },
+        ProjectionExpression='object_key',
+    )
+    return [item['object_key']['S'] for item in results['Items']]
+
+
+def object_available(object_key, table):
+    results = dynamodb.get_item(
+        TableName=table,
+        Key={'object_key': {'S': object_key}},
+        ProjectionExpression='availability',
+    )
+    return results['Item']['availability']['S'] == 'available'
+
+
+def bundle_complete(bundle_id, bundle_objects_table, objects_table):
+    bundle_objects = get_objects_for_bundle(bundle_id, bundle_objects_table)
+    for object_key in bundle_objects:
+        if not object_available(object_key, objects_table):
+            return False
+    return True
 
 
 def restore_object(obj, config):

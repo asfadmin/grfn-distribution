@@ -102,6 +102,7 @@ Resources:
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
+        BundleObjectsTable: !Ref BundleObjectsTable
         RetentionDays: !Ref RetentionDays
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-requests/cloudformation.yaml
