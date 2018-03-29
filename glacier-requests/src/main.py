@@ -76,7 +76,7 @@ def get_objects_by_availability(availability, table):
 
 def process_restore_requests(config):
     objects = get_objects_by_availability('refresh', config['objects_table'])
-    objects.append(get_objects_by_availability('pending', config['objects_table']))
+    objects += get_objects_by_availability('pending', config['objects_table'])
 
     for obj in objects:
         s3_obj = get_object(config['bucket'], obj['object_key'])
