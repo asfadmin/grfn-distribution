@@ -54,20 +54,20 @@ def get_expiration_date(restore_string):
     return expiration_date
 
 
-def get_objects_by_status(status, table):
+def get_objects_by_availability(availability, table):
     results = dynamodb.query(
         TableName=table,
         IndexName='availability',
         KeyConditionExpression='availability = :1',
         ExpressionAttributeValues={
-            ':1': {'S': status},
+            ':1': {'S': availability},
         },
-        ProjectionExpression='object_key,status',
+        ProjectionExpression='object_key,availability',
     )
     objects = [
         {
             'object_key': item['object_key']['S'],
-            'status': item['status']['S'],
+            'availability': item['availability']['S'],
         }
         for item in results['Items']
     ]
@@ -75,13 +75,13 @@ def get_objects_by_status(status, table):
 
 
 def process_restore_requests(config):
-    objects = get_objects_by_status('refresh', config['objects_table'])
-    objects.append(get_objects_by_status('pending', config['objects_table']))
+    objects = get_objects_by_availability('refresh', config['objects_table'])
+    objects.append(get_objects_by_availability('pending', config['objects_table']))
 
     for obj in objects:
         s3_obj = get_object(config['bucket'], obj['object_key'])
         status = translate_restore_status(s3_obj.restore)
-        if status == 'not_available' or obj['status'] == 'refresh':
+        if status == 'not_available' or obj['availability'] == 'refresh':
             restore_object(s3_obj, config['restore'])
         if status == 'available':
             expiration_date = get_expiration_date(s3_obj.restore)
