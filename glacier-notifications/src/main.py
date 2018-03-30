@@ -1,15 +1,17 @@
 import json
 from os import environ
 from logging import getLogger
+from operator import itemgetter
 import boto3
 from datetime import datetime, timedelta, date
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
 
 
 log = getLogger()
 ses = boto3.client('ses')
 sqs = boto3.resource('sqs')
 dynamodb = boto3.client('dynamodb')
+lamb = boto3.client('lambda')
 
 
 def setup():
@@ -19,12 +21,11 @@ def setup():
     return config
 
 
-def build_acknowledgement_email_body(config):
-    with open(config['template_file'], 'r') as t:
-        template_text = t.read()
-    template = Template(template_text)
-    email_body = template.render(hostname=config['hostname'])
-    return email_body
+def render(template_file, data):
+    loader = FileSystemLoader('templates/')
+    env = Environment(loader=loader)
+    template = env.get_template(template_file)
+    return template.render(data=data)
 
 
 def get_user(user_id, table):
@@ -46,6 +47,50 @@ def get_user(user_id, table):
     return user
 
 
+def get_object(object_key, table):
+    results = dynamodb.get_item(
+        TableName=table,
+        Key={'object_key': {'S': object_key}},
+        ProjectionExpression='object_key, expiration_date',
+    )
+    item = results['Item']
+    obj = {
+        'object_key': item['object_key']['S'],
+        'expiration_date': item['expiration_date']['S']
+    }
+    return obj
+
+
+def get_bundle_objects(bundle_id, table):
+    results = dynamodb.query(
+        TableName=table,
+        KeyConditionExpression='bundle_id = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': bundle_id},
+        },
+        ProjectionExpression='object_key, request_date',
+    )
+    bundle_objects = [
+        {
+            'object_key': item['object_key']['S'],
+            'request_date': item['request_date']['S'],
+        }
+        for item in results['Items']
+    ]
+    return bundle_objects
+
+
+def get_objects_for_bundle(bundle_id, bundle_objects_table, objects_table):
+    objects = []
+    bundle_objects = get_bundle_objects(bundle_id, bundle_objects_table)
+    for bundle_object in bundle_objects:
+        obj = get_object(bundle_object['object_key'], objects_table)
+        obj['request_date'] = bundle_object['request_date']
+        objects.append(obj)
+    objects.sort(key=itemgetter('request_date'), reverse=True)
+    return objects
+
+
 def update_last_acknowledgement_for_user(user_id, table):
     primary_key = {'user_id': {'S': user_id}}
     dynamodb.update_item(
@@ -58,35 +103,19 @@ def update_last_acknowledgement_for_user(user_id, table):
     )
 
 
-def send_acknowledgement_email(data, config):
-    user = get_user(data['user_id'], config['users_table'])
-    if user['subscribed_to_emails']:
-        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
-        if user['last_acknowledgement'] < cutoff_date:
-            log.info('Emailing user %s at %s', user['user_id'], user['email_address'])
-            ses_message = build_acknowledgement_email(user['email_address'], config)
-            ses.send_email(**ses_message)
-            update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
-        else:
-            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
-    else:
-        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
-
-
-def build_acknowledgement_email(to_email, config):
+def build_ses_message(email_subject, email_body, email_address, config):
     today = date.strftime(datetime.utcnow(), '%B %d, %Y')
     from_email = '{0} <{1}>'.format(config['from_description'], config['from_email'])
-    subject = 'SAR Products Requested {0} UTC'.format(today)
-    email_body = build_acknowledgement_email_body(config['email_body'])
+    final_subject = email_subject.format(today)
 
     ses_message = {
         'Source': from_email,
         'Destination': {
-            'ToAddresses': [to_email],
+            'ToAddresses': [email_address],
         },
         'Message': {
             'Subject': {
-                'Data': subject,
+                'Data': final_subject,
             },
             'Body': {
                 'Html': {
@@ -100,20 +129,51 @@ def build_acknowledgement_email(to_email, config):
 
 def process_sqs_message(sqs_message, config):
     payload = json.loads(sqs_message.body)
+    log.info('User ID: %s  Type: %s', payload['user_id'], payload['type'])
+    user = get_user(payload['user_id'], config['users_table'])
+
+    if not user['subscribed_to_emails']:
+        log.info('User %s is not subscribed to notifications, skipping', user['user_id'])
+        return
+
     if payload['type'] == 'acknowledgement':
-        send_acknowledgement_email(payload['data'], config)
-    else:
-        raise Exception('Invalid email type: {0}'.format(payload['type']))
+        cutoff_date = str(datetime.utcnow() - timedelta(minutes=config['message_interval_in_minutes']))
+        if cutoff_date <= user['last_acknowledgement']:
+            log.info('User %s already notified at %s, skipping', user['user_id'], user['last_acknowledgement'])
+            return
+
+    if payload['type'] == 'acknowledgement':
+        email_subject = 'SAR Products Requested {0} UTC'
+        template = 'acknowledgement.html'
+        data = {
+            'hostname': config['hostname']
+        }
+    elif payload['type'] == 'availability':
+        email_subject = 'SAR Products Available {0} UTC'
+        template = 'availability.html'
+        data = {
+            'hostname': config['hostname'],
+            'objects': get_objects_for_bundle(payload['bundle_id'], config['bundle_objects_table'], config['objects_table']),
+            'retention_days': config['retention_days'],
+        }
+
+    email_body = render(template, data)
+    ses_message = build_ses_message(email_subject, email_body, user['email_address'], config['sender'])
+    ses.send_email(**ses_message)
+
+    if payload['type'] == 'acknowledgement':
+        update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
 
 
-def process_notifications(config):
+def process_notifications(config, get_remaining_time_in_millis_fcn):
     queue = sqs.Queue(config['email_queue_url'])
 
     while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=config['max_messages_per_receive'], WaitTimeSeconds=config['wait_time_in_seconds'])
-        if not messages:
-            log.info('No messages found.  Exiting.')
+        if get_remaining_time_in_millis_fcn() < config['buffer_time_in_millis']:
+            log.info('Remaining time %s less than buffer time %s.  Exiting.', get_remaining_time_in_millis_fcn(), config['buffer_time_in_millis'])
             break
+
+        messages = queue.receive_messages(MaxNumberOfMessages=config['max_messages_per_receive'], WaitTimeSeconds=config['wait_time_in_seconds'])
 
         for sqs_message in messages:
             try:
@@ -125,4 +185,4 @@ def process_notifications(config):
 
 def lambda_handler(event, context):
     config = setup()
-    process_notifications(config['notifications'])
+    process_notifications(config['notifications'], context.get_remaining_time_in_millis)

@@ -81,7 +81,6 @@ Resources:
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-availability/cloudformation.yaml
 
-
   GlacierStatusStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -94,7 +93,6 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-
   GlacierRequestsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -103,7 +101,10 @@ Resources:
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !Ref BundlesTable
+        BundleObjectsTable: !Ref BundleObjectsTable
         RetentionDays: !Ref RetentionDays
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-requests/cloudformation.yaml
 
   GlacierNotificationsStack:
@@ -113,8 +114,11 @@ Resources:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
         UsersTable: !Ref UsersTable
+        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+        RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
@@ -181,8 +185,8 @@ Resources:
       - AttributeName: object_key
         KeyType: HASH
       ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 2
       GlobalSecondaryIndexes:
       - IndexName: availability
         KeySchema:
@@ -209,7 +213,7 @@ Resources:
       - AttributeName: object_key
         KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 1
+        ReadCapacityUnits: 2
         WriteCapacityUnits: 1
 
   UsersTable:
