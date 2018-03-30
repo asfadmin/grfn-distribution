@@ -165,14 +165,15 @@ def process_sqs_message(sqs_message, config):
         update_last_acknowledgement_for_user(user['user_id'], config['users_table'])
 
 
-def process_notifications(config):
+def process_notifications(config, get_remaining_time_in_millis_fcn):
     queue = sqs.Queue(config['email_queue_url'])
 
     while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=config['max_messages_per_receive'], WaitTimeSeconds=config['wait_time_in_seconds'])
-        if not messages:
-            log.info('No messages found.  Exiting.')
+        if get_remaining_time_in_millis_fcn() < config['buffer_time_in_millis']:
+            log.info('Remaining time %s less than buffer time %s.  Exiting.', get_remaining_time_in_millis_fcn(), config['buffer_time_in_millis'])
             break
+
+        messages = queue.receive_messages(MaxNumberOfMessages=config['max_messages_per_receive'], WaitTimeSeconds=config['wait_time_in_seconds'])
 
         for sqs_message in messages:
             try:
@@ -184,4 +185,4 @@ def process_notifications(config):
 
 def lambda_handler(event, context):
     config = setup()
-    process_notifications(config['notifications'])
+    process_notifications(config['notifications'], context.get_remaining_time_in_millis)
