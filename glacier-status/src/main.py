@@ -69,6 +69,8 @@ def get_object(object_key, table):
         'object_key': item['object_key']['S'],
         'availability': item['availability']['S'],
     }
+    if obj['availability'] == 'refresh':
+        obj['availability'] = 'available'
     if 'expiration_date' in item:
         obj['expiration_date'] = item['expiration_date']['S']
     return obj

@@ -77,14 +77,14 @@ def add_object_to_bundle(object_key, bundle_id, table):
     )
 
 
-def add_object(object_key, table):
+def update_object(object_key, status, table):
     primary_key = {'object_key': {'S': object_key}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
         UpdateExpression='set availability = :1',
         ExpressionAttributeValues={
-            ':1': {'S': 'pending'},
+            ':1': {'S': status},
         },
     )
 
@@ -93,9 +93,7 @@ def submit_email_to_queue(user_id, queue_name):
     queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
     payload = {
         'type': 'acknowledgement',
-        'data': {
-            'user_id': user_id,
-        },
+        'user_id': user_id,
     }
     sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
 
@@ -113,7 +111,9 @@ def process_availability(event, config):
             add_object_to_bundle(obj.key, bundle_id, config['bundle_objects_table'])
             submit_email_to_queue(event['user_id'], config['email_queue_name'])
         if restore_status == 'not_available': # issue restore request
-            add_object(obj.key, config['objects_table'])
+            update_object(obj.key, 'pending', config['objects_table'])
+        if restore_status == 'available':
+            update_object(obj.key, 'refresh', config['objects_table'])
     return {'available': available}
 
 

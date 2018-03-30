@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
+sqs = boto3.client('sqs')
 
 
 def setup():
@@ -53,31 +54,107 @@ def get_expiration_date(restore_string):
     return expiration_date
 
 
-def get_pending_objects(table):
+def get_objects_by_availability(availability, table):
     results = dynamodb.query(
         TableName=table,
         IndexName='availability',
         KeyConditionExpression='availability = :1',
         ExpressionAttributeValues={
-            ':1': {'S': 'pending'},
+            ':1': {'S': availability},
         },
-        ProjectionExpression='object_key',
+        ProjectionExpression='object_key,availability',
     )
-    object_keys = [item['object_key']['S'] for item in results['Items']]
-    return object_keys
+    objects = [
+        {
+            'object_key': item['object_key']['S'],
+            'availability': item['availability']['S'],
+        }
+        for item in results['Items']
+    ]
+    return objects
 
 
 def process_restore_requests(config):
-    object_keys = get_pending_objects(config['objects_table'])
+    objects = get_objects_by_availability('refresh', config['objects_table'])
+    objects += get_objects_by_availability('pending', config['objects_table'])
 
-    for object_key in object_keys:
-        obj = get_object(config['bucket'], object_key)
-        status = translate_restore_status(obj.restore)
-        if status == 'not_available':
-            restore_object(obj, config['restore'])
+    for obj in objects:
+        s3_obj = get_object(config['bucket'], obj['object_key'])
+        status = translate_restore_status(s3_obj.restore)
+        if status == 'not_available' or obj['availability'] == 'refresh':
+            restore_object(s3_obj, config['restore'])
         if status == 'available':
-            expiration_date = get_expiration_date(obj.restore)
-            update_object(config['objects_table'], object_key, expiration_date)
+            expiration_date = get_expiration_date(s3_obj.restore)
+            update_object(config['objects_table'], obj['object_key'], expiration_date)
+
+    open_bundles = get_open_bundles(config['bundles_table'])
+    for bundle in open_bundles:
+        if bundle_complete(bundle['bundle_id'], config['bundle_objects_table'], config['objects_table']):
+            close_bundle(bundle['bundle_id'], config['bundles_table'])
+            send_sqs_message(bundle, config['email_queue_name'])
+
+
+def close_bundle(bundle_id, table):
+    primary_key = {'bundle_id': {'S': bundle_id}}
+    dynamodb.update_item(
+        TableName=table,
+        Key=primary_key,
+        UpdateExpression='set close_date = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': str(datetime.utcnow())},
+        },
+    )
+
+
+def send_sqs_message(bundle, queue_name):
+    queue_url = sqs.get_queue_url(QueueName=queue_name)['QueueUrl']
+    payload = {
+        'type': 'availability',
+        'user_id': bundle['user_id'],
+        'bundle_id': bundle['bundle_id'],
+    }
+    sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
+
+
+def get_open_bundles(table):
+    results = dynamodb.scan(
+        TableName=table,
+        FilterExpression='close_date = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': 'none'},
+        },
+        ProjectionExpression='bundle_id,user_id',
+    )
+    return [{'bundle_id': item['bundle_id']['S'], 'user_id': item['user_id']['S']} for item in results['Items']]
+
+
+def get_objects_for_bundle(bundle_id, table):
+    results = dynamodb.query(
+        TableName=table,
+        KeyConditionExpression='bundle_id = :1',
+        ExpressionAttributeValues={
+            ':1': {'S': bundle_id},
+        },
+        ProjectionExpression='object_key',
+    )
+    return [item['object_key']['S'] for item in results['Items']]
+
+
+def object_available(object_key, table):
+    results = dynamodb.get_item(
+        TableName=table,
+        Key={'object_key': {'S': object_key}},
+        ProjectionExpression='availability',
+    )
+    return results['Item']['availability']['S'] == 'available'
+
+
+def bundle_complete(bundle_id, bundle_objects_table, objects_table):
+    bundle_objects = get_objects_for_bundle(bundle_id, bundle_objects_table)
+    for object_key in bundle_objects:
+        if not object_available(object_key, objects_table):
+            return False
+    return True
 
 
 def restore_object(obj, config):
