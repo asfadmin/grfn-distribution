@@ -94,6 +94,9 @@ def download_redirect(file_name):
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
 
+    if get_environ_value('CLI_USER_AGENT'):
+        return render_template('cli_user_agent_response.html'), 202
+
     return redirect(url_for('status'))
 
 
