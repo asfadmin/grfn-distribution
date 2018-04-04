@@ -93,19 +93,29 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-  GlacierRequestsStack:
+  GlacierUpkeepStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-glacier-requests"
+        Name: !Sub "${Name}-glacier-upkeep"
         LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
         BundleObjectsTable: !Ref BundleObjectsTable
-        RetentionDays: !Ref RetentionDays
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-      TemplateURL: glacier-requests/cloudformation.yaml
+        GlacierObjectLambda: !GetAtt GlacierObjectStack.Outputs.LambdaName
+      TemplateURL: glacier-upkeep/cloudformation.yaml
+
+  GlacierObjectStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-object"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+        RetentionDays: !Ref RetentionDays
+      TemplateURL: glacier-objects/cloudformation.yaml
 
   GlacierNotificationsStack:
     Type: AWS::CloudFormation::Stack

@@ -22,18 +22,14 @@ Parameters:
   ObjectsTable:
     Type: String
 
-  BundlesTable:
-    Type: String
-
-  BundleObjectsTable:
-    Type: String
-
   RetentionDays:
     Type: Number
     Default: 7
 
-  EmailQueueName:
-    Type: String
+Outputs:
+
+  LambdaName:
+    Value: !Ref Lambda
 
 Resources:
 
@@ -74,26 +70,8 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: dynamodb:Query
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/availability"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
-          - Effect: Allow
-            Action: dynamodb:Scan
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
-          - Effect: Allow
-            Action: dynamodb:GetItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-          - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
-          - Effect: Allow
-            Action:
-            - sqs:GetQueueUrl
-            - sqs:SendMessage
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
           - Effect: Allow
             Action:
             - s3:GetObject
@@ -112,12 +90,9 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "restore_requests": {
+              "process_object": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
-                "bundles_table": "${BundlesTable}",
-                "bundle_objects_table": "${BundleObjectsTable}",
-                "email_queue_name": "${EmailQueueName}",
                 "restore": {
                     "tier": "Expedited",
                     "retention_days": ${RetentionDays}
@@ -128,22 +103,4 @@ Resources:
       MemorySize: 128
       Role: !GetAtt Role.Arn
       Runtime: python2.7
-      Timeout: 300
-
-  Schedule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Ref Name
-      ScheduleExpression: "rate(1 minute)"
-      State: ENABLED
-      Targets:
-      - Arn: !GetAtt Lambda.Arn
-        Id: lambda
-
-  EventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt Lambda.Arn
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt Schedule.Arn
+      Timeout: 60
