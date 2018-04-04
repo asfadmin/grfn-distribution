@@ -80,7 +80,7 @@ Resources:
             - dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
           - Effect: Allow
-            Action: lambda:Invoke
+            Action: lambda:InvokeFunction
             Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${GlacierObjectLambda}"
           - Effect: Allow
             Action:
