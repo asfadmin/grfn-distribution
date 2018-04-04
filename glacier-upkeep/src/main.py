@@ -98,7 +98,7 @@ def upkeep(config):
     for obj in pending_objects + refresh_objects:
         payload = {'object_key': obj, 'refresh': obj in refresh_objects}
         lamb.invoke(
-            FunctionName=config['glacier_objects_lambda'],
+            FunctionName=config['glacier_object_lambda'],
             Payload=json.dumps(payload),
             InvocationType='Event',
         )
