@@ -115,7 +115,7 @@ Resources:
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
         RetentionDays: !Ref RetentionDays
-      TemplateURL: glacier-objects/cloudformation.yaml
+      TemplateURL: glacier-object/cloudformation.yaml
 
   GlacierNotificationsStack:
     Type: AWS::CloudFormation::Stack
