@@ -206,7 +206,7 @@ Resources:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
           ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+          WriteCapacityUnits: 40
 
   BundleObjectsTable:
     Type: AWS::DynamoDB::Table
