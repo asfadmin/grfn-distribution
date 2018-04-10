@@ -16,13 +16,13 @@
 Your requested data are being fetched from long-term storage.  Links will appear below when products are available for download.  Data files will be returned to long-term storage after {{ data.retention_days }} days.
 <p />
 
-{% for object in data.objects if object.availability != 'available' %}
+{% for object in data.objects if not object.available %}
     {% if loop.first %}In Progress:<UL>{% endif %}
     <li>{{ object.object_key }}</li>
     {% if loop.last %}</UL>{% endif %}
 {% endfor %}
 
-{% for object in data.objects if object.availability =='available' %}
+{% for object in data.objects if object.available %}
     {% if loop.first %}Available:<UL>{% endif %}
     <li><a href="{{ url_for('download_redirect', object_key=object.object_key) }}">{{ object.object_key }}</a> available through {{ object.expiration_date }} UTC</li>
     {% if loop.last %}</UL>{% endif %}

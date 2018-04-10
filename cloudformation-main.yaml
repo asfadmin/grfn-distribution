@@ -75,9 +75,8 @@ Resources:
         Name: !Sub "${Name}-glacier-availability"
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
-        ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
       TemplateURL: glacier-availability/cloudformation.yaml
 
@@ -87,49 +86,58 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-status"
         LogLevel: !Ref LogLevel
-        ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-  GlacierUpkeepStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-upkeep"
-        LogLevel: !Ref LogLevel
-        ObjectsTable: !Ref ObjectsTable
-        BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
-        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-        GlacierObjectLambda: !GetAtt GlacierObjectStack.Outputs.LambdaName
-      TemplateURL: glacier-upkeep/cloudformation.yaml
+  #GlacierUpkeepStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    Parameters:
+  #      Name: !Sub "${Name}-glacier-upkeep"
+  #      LogLevel: !Ref LogLevel
+  #      BundlesTable: !Ref BundlesTable
+  #      ObjectsTable: !Ref ObjectsTable
+  #      EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
+  #      RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
+  #      PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
+  #    TemplateURL: glacier-upkeep/cloudformation.yaml
 
-  GlacierObjectStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-object"
-        LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
-        ObjectsTable: !Ref ObjectsTable
-        RetentionDays: !Ref RetentionDays
-      TemplateURL: glacier-object/cloudformation.yaml
+  #GlacierRestoreStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    Parameters:
+  #      Name: !Sub "${Name}-glacier-restore"
+  #      LogLevel: !Ref LogLevel
+  #      Bucket: !Ref PrivateBucket
+  #      ObjectsTable: !Ref ObjectsTable
+  #      RetentionDays: !Ref RetentionDays
+  #    TemplateURL: glacier-object/cloudformation.yaml
 
-  GlacierNotificationsStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-notifications"
-        LogLevel: !Ref LogLevel
-        UsersTable: !Ref UsersTable
-        BundleObjectsTable: !Ref BundleObjectsTable
-        ObjectsTable: !Ref ObjectsTable
-        Hostname: !Ref Hostname
-        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
-        RetentionDays: !Ref RetentionDays
-      TemplateURL: glacier-notifications/cloudformation.yaml
+  #GlacierPollStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    Parameters:
+  #      Name: !Sub "${Name}-glacier-poll"
+  #      LogLevel: !Ref LogLevel
+  #      Bucket: !Ref PrivateBucket
+  #      ObjectsTable: !Ref ObjectsTable
+  #    TemplateURL: glacier-object/cloudformation.yaml
+
+  #GlacierNotificationsStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    Parameters:
+  #      Name: !Sub "${Name}-glacier-notifications"
+  #      LogLevel: !Ref LogLevel
+  #      UsersTable: !Ref UsersTable
+  #      BundleObjectsTable: !Ref BundleObjectsTable
+  #      ObjectsTable: !Ref ObjectsTable
+  #      Hostname: !Ref Hostname
+  #      AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+  #      RetentionDays: !Ref RetentionDays
+  #    TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
     Type: AWS::CloudFormation::Stack
@@ -187,35 +195,11 @@ Resources:
     Properties:
       TableName: !Sub "${Name}-objects"
       AttributeDefinitions:
-      - AttributeName: object_key
-        AttributeType: S
-      - AttributeName: availability
-        AttributeType: S
-      KeySchema:
-      - AttributeName: object_key
-        KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 50
-        WriteCapacityUnits: 40
-      GlobalSecondaryIndexes:
-      - IndexName: availability
-        KeySchema:
-        - AttributeName: availability
-          KeyType: HASH
-        Projection:
-          ProjectionType: KEYS_ONLY
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-
-  BundleObjectsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${Name}-bundle-objects"
-      AttributeDefinitions:
       - AttributeName: bundle_id
         AttributeType: S
       - AttributeName: object_key
+        AttributeType: S
+      - AttributeName: state
         AttributeType: S
       KeySchema:
       - AttributeName: bundle_id
@@ -223,8 +207,20 @@ Resources:
       - AttributeName: object_key
         KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 20
-        WriteCapacityUnits: 5
+        ReadCapacityUnits: 50
+        WriteCapacityUnits: 40
+      GlobalSecondaryIndexes:
+      - IndexName: state
+        KeySchema:
+        - AttributeName: state
+          KeyType: HASH
+        - AttributeName: bundle_id
+          KeyType: RANGE
+        Projection:
+          ProjectionType: KEYS_ONLY
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
 
   UsersTable:
     Type: AWS::DynamoDB::Table

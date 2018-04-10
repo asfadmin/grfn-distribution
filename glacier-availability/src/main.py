@@ -10,6 +10,7 @@ log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
+lamb = boto3.client('lambda')
 
 
 def setup():
@@ -25,11 +26,11 @@ def get_s3_object(bucket, key):
     return obj
 
 
-def translate_restore_status(restore):
+def translate_restore_state(restore):
     if restore is None:
-        return 'not_available'
+        return 'new'
     if 'ongoing-request="true"' in restore:
-        return 'in_progress'
+        return 'pending'
     return 'available'
 
 
@@ -65,26 +66,15 @@ def create_new_bundle_for_user(user_id, table):
     return bundle_id
 
 
-def add_object_to_bundle(object_key, bundle_id, table):
+def update_object(bundle_id, object_key, state, table):
     primary_key = {'bundle_id': {'S': bundle_id}, 'object_key': {'S': object_key}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set request_date = :1',
+        UpdateExpression='set state = :1, request_date = :2',
         ExpressionAttributeValues={
-            ':1': {'S': str(datetime.utcnow())},
-        },
-    )
-
-
-def update_object(object_key, status, table):
-    primary_key = {'object_key': {'S': object_key}}
-    dynamodb.update_item(
-        TableName=table,
-        Key=primary_key,
-        UpdateExpression='set availability = :1',
-        ExpressionAttributeValues={
-            ':1': {'S': status},
+            ':1': {'S': state},
+            ':2': {'S', str(datetime.utcnow())},
         },
     )
 
@@ -102,18 +92,17 @@ def process_availability(event, config):
     available = True
     obj = get_s3_object(config['bucket'], event['object_key'])
     if obj.storage_class == 'GLACIER':
-        restore_status = translate_restore_status(obj.restore)
-        if restore_status in ['not_available', 'in_progress']: # log user interest in object
+        restore_state = translate_restore_state(obj.restore)
+        if restore_state in ['new', 'pending']:
             available = False
             bundle_id = get_open_bundle_for_user(event['user_id'], config['bundles_table'])
             if not bundle_id:
                 bundle_id = create_new_bundle_for_user(event['user_id'], config['bundles_table'])
-            add_object_to_bundle(obj.key, bundle_id, config['bundle_objects_table'])
+            update_object(bundle_id, obj.key, restore_state, config['objects_table'])
             submit_email_to_queue(event['user_id'], config['email_queue_name'])
-        if restore_status == 'not_available': # issue restore request
-            update_object(obj.key, 'pending', config['objects_table'])
-        if restore_status == 'available':
-            update_object(obj.key, 'refresh', config['objects_table'])
+        # TODO implement refreshes
+        #if restore_state == 'available':
+        #    refresh_object(obj.key, config['refresh_lambda'])
     return {'available': available}
 
 
