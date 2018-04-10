@@ -25,7 +25,7 @@ def get_s3_object(bucket, key):
     return obj
 
 
-def translate_restore_state(restore_string):
+def get_request_status(restore_string):
     if restore_string is None:
         return 'new'
     if 'ongoing-request="true"' in restore_string:
@@ -65,15 +65,15 @@ def create_new_bundle_for_user(user_id, table):
     return bundle_id
 
 
-def update_object(bundle_id, object_key, state, table):
+def update_object(bundle_id, object_key, request_status, table):
     primary_key = {'bundle_id': {'S': bundle_id}, 'object_key': {'S': object_key}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set state = :1, request_date = :2',
+        UpdateExpression='set request_status = :1, request_date = :2',
         ExpressionAttributeValues={
-            ':1': {'S': state},
-            ':2': {'S', str(datetime.utcnow())},
+            ':1': {'S': request_status},
+            ':2': {'S': str(datetime.utcnow())},
         },
     )
 
@@ -91,13 +91,13 @@ def process_availability(event, config):
     available = True
     obj = get_s3_object(config['bucket'], event['object_key'])
     if obj.storage_class == 'GLACIER':
-        restore_state = translate_restore_state(obj.restore)
-        if restore_state in ['new', 'pending']:
+        request_status = get_request_status(obj.restore)
+        if request_status in ['new', 'pending']:
             available = False
             bundle_id = get_open_bundle_for_user(event['user_id'], config['bundles_table'])
             if not bundle_id:
                 bundle_id = create_new_bundle_for_user(event['user_id'], config['bundles_table'])
-            update_object(bundle_id, obj.key, restore_state, config['objects_table'])
+            update_object(bundle_id, obj.key, request_status, config['objects_table'])
             submit_email_to_queue(event['user_id'], config['email_queue_name'])
         # TODO implement refreshes
         #if restore_state == 'available':
