@@ -45,15 +45,16 @@ def get_objects_for_bundle(bundle_id, cutoff_date, table):
         },
         ProjectionExpression='object_key, request_date, expiration_date, request_status',
     )
-    objects = [
-        {
+    objects = []
+    for item in results['Items']:
+        obj = {
             'object_key': item['object_key']['S'],
             'request_date': item['request_date']['S'],
-            'expiration_date': item['expiration_date']['S'],
             'available': item['request_status']['S'] in ['available', 'refresh'],
         }
-        for item in results['Items']
-    ]
+        if 'expiration_date' in item:
+            obj['expiration_date'] = item['expiration_date']['S']
+        objects.append(obj)
     return objects
 
 
