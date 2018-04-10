@@ -192,7 +192,7 @@ Resources:
   ObjectsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${Name}-objects"
+      TableName: !Sub "${Name}-objects2"
       AttributeDefinitions:
       - AttributeName: bundle_id
         AttributeType: S
