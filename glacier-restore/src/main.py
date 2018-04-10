@@ -25,42 +25,42 @@ def get_object(bucket, key):
     return obj
 
 
-def translate_restore_status(restore):
-    if restore is None:
-        return 'not_available'
-    if 'ongoing-request="true"' in restore:
-        return 'in_progress'
+def get_request_status(restore_string):
+    if restore_string is None:
+        return 'new'
+    if 'ongoing-request="true"' in restore_string:
+        return 'pending'
     return 'available'
 
 
-def update_object(table, object_key, expiration_date):
-    log.info('Object is now available.  Object Key: %s, Expiration Date %s', object_key, str(expiration_date))
-    primary_key = {'object_key': {'S': object_key}}
+def update_object(bundle_id, object_key, request_status, expiration_date, table):
+    primary_key = {'bundle_id': {'S': bundle_id}, 'object_key': {'S': object_key}}
     dynamodb.update_item(
         TableName=table,
         Key=primary_key,
-        UpdateExpression='set availability = :1, expiration_date = :2',
+        UpdateExpression='set request_status = :1, expiration_date = :2',
         ExpressionAttributeValues={
-            ':1': {'S': 'available'},
+            ':1': {'S': request_status},
             ':2': {'S': str(expiration_date)},
         },
     )
 
 
 def get_expiration_date(restore_string):
-    expiration_date = re.search('expiry-date="(.+)"', restore_string).group(1)
-    expiration_date = datetime.strptime(expiration_date, '%a, %d %b %Y %H:%M:%S %Z')
-    return expiration_date
+    match = re.search('expiry-date="(.+)"', restore_string)
+    if match:
+        return datetime.strptime(match.group(1), '%a, %d %b %Y %H:%M:%S %Z')
+    return None
 
 
-def restore_object(obj, config):
-    log.info('Restoring object.  Object Key: %s, Tier: %s, Retention Days: %s', obj.key, config['tier'], config['retention_days'])
+def restore_object(obj, tier, retention_days):
+    log.info('Restoring object.  Object Key: %s, Tier: %s, Retention Days: %s', obj.key, tier, retention_days)
     try:
         obj.restore_object(
             RestoreRequest={
-                'Days': config['retention_days'],
+                'Days': retention_days,
                 'GlacierJobParameters': {
-                    'Tier': config['tier'],
+                    'Tier': tier,
                 },
             }
         )
@@ -68,14 +68,13 @@ def restore_object(obj, config):
         log.exception('Failed to restore object.')
 
 
-def process_object(obj, config):
-    s3_obj = get_object(config['bucket'], obj['object_key'])
-    status = translate_restore_status(s3_obj.restore)
-    if status == 'not_available' or obj['refresh']:
-        restore_object(s3_obj, config['restore'])
-    if status == 'available':
+def process_object(event, config):
+    s3_obj = get_object(config['bucket'], event['object_key'])
+    restore_object(s3_obj, event['tier'], config['retention_days'])
+    request_status = get_request_status(s3_obj.restore)
+    if request_status in ['pending', 'available']:
         expiration_date = get_expiration_date(s3_obj.restore)
-        update_object(config['objects_table'], obj['object_key'], expiration_date)
+        update_object(event['bundle_id'], event['object_key'], request_status, expiration_date, config['objects_table'])
 
 
 def lambda_handler(event, context):
