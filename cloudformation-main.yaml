@@ -132,7 +132,6 @@ Resources:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
         UsersTable: !Ref UsersTable
-        BundleObjectsTable: !Ref BundleObjectsTable
         ObjectsTable: !Ref ObjectsTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
