@@ -104,7 +104,7 @@ Resources:
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
                 "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}",
+                "email_queue_name": "${EmailQueueName}"
               }
             }
       Handler: main.lambda_handler
