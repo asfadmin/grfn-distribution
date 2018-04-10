@@ -125,19 +125,19 @@ Resources:
   #      ObjectsTable: !Ref ObjectsTable
   #    TemplateURL: glacier-object/cloudformation.yaml
 
-  #GlacierNotificationsStack:
-  #  Type: AWS::CloudFormation::Stack
-  #  Properties:
-  #    Parameters:
-  #      Name: !Sub "${Name}-glacier-notifications"
-  #      LogLevel: !Ref LogLevel
-  #      UsersTable: !Ref UsersTable
-  #      BundleObjectsTable: !Ref BundleObjectsTable
-  #      ObjectsTable: !Ref ObjectsTable
-  #      Hostname: !Ref Hostname
-  #      AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
-  #      RetentionDays: !Ref RetentionDays
-  #    TemplateURL: glacier-notifications/cloudformation.yaml
+  GlacierNotificationsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-notifications"
+        LogLevel: !Ref LogLevel
+        UsersTable: !Ref UsersTable
+        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
+        Hostname: !Ref Hostname
+        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+        RetentionDays: !Ref RetentionDays
+      TemplateURL: glacier-notifications/cloudformation.yaml
 
   DoorStack:
     Type: AWS::CloudFormation::Stack
