@@ -10,7 +10,6 @@ log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
-lamb = boto3.client('lambda')
 
 
 def setup():
@@ -26,10 +25,10 @@ def get_s3_object(bucket, key):
     return obj
 
 
-def translate_restore_state(restore):
-    if restore is None:
+def translate_restore_state(restore_string):
+    if restore_string is None:
         return 'new'
-    if 'ongoing-request="true"' in restore:
+    if 'ongoing-request="true"' in restore_string:
         return 'pending'
     return 'available'
 
