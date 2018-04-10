@@ -28,7 +28,7 @@ phases:
       - pip install -r glacier-availability/requirements.txt -t glacier-availability/src/
       - pip install -r glacier-status/requirements.txt -t glacier-status/src/
       - pip install -r glacier-upkeep/requirements.txt -t glacier-upkeep/src/
-      - pip install -r glacier-object/requirements.txt -t glacier-object/src/
+      - pip install -r glacier-restore/requirements.txt -t glacier-restore/src/
       - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
       - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
