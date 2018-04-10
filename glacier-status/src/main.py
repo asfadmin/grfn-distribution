@@ -43,14 +43,14 @@ def get_objects_for_bundle(bundle_id, cutoff_date, table):
             ':1': {'S': bundle_id},
             ':2': {'S': cutoff_date},
         },
-        ProjectionExpression='object_key, request_date, expiration_date, state',
+        ProjectionExpression='object_key, request_date, expiration_date, request_status',
     )
     objects = [
         {
             'object_key': item['object_key']['S'],
             'request_date': item['request_date']['S'],
             'expiration_date': item['expiration_date']['S'],
-            'available': item['state']['S'] in ['available', 'refresh'],
+            'available': item['request_status']['S'] in ['available', 'refresh'],
         }
         for item in results['Items']
     ]
