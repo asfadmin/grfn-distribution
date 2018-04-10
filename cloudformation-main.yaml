@@ -104,16 +104,16 @@ Resources:
   #      PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
   #    TemplateURL: glacier-upkeep/cloudformation.yaml
 
-  #GlacierRestoreStack:
-  #  Type: AWS::CloudFormation::Stack
-  #  Properties:
-  #    Parameters:
-  #      Name: !Sub "${Name}-glacier-restore"
-  #      LogLevel: !Ref LogLevel
-  #      Bucket: !Ref PrivateBucket
-  #      ObjectsTable: !Ref ObjectsTable
-  #      RetentionDays: !Ref RetentionDays
-  #    TemplateURL: glacier-object/cloudformation.yaml
+  GlacierRestoreStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-restore"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+        RetentionDays: !Ref RetentionDays
+      TemplateURL: glacier-restore/cloudformation.yaml
 
   #GlacierPollStack:
   #  Type: AWS::CloudFormation::Stack

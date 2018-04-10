@@ -93,10 +93,7 @@ Resources:
               "process_object": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
-                "restore": {
-                    "tier": "Expedited",
-                    "retention_days": ${RetentionDays}
-                }
+                "retention_days": ${RetentionDays}
               }
             }
       Handler: main.lambda_handler
