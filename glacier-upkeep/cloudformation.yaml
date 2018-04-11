@@ -71,7 +71,7 @@ Resources:
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: dynamodb:Query
-            Resource: "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/request_status"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/request_status"
           - Effect: Allow
             Action:
             - dynamodb:Scan
