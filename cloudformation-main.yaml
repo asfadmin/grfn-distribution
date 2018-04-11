@@ -115,15 +115,15 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-restore/cloudformation.yaml
 
-  #GlacierPollStack:
-  #  Type: AWS::CloudFormation::Stack
-  #  Properties:
-  #    Parameters:
-  #      Name: !Sub "${Name}-glacier-poll"
-  #      LogLevel: !Ref LogLevel
-  #      Bucket: !Ref PrivateBucket
-  #      ObjectsTable: !Ref ObjectsTable
-  #    TemplateURL: glacier-object/cloudformation.yaml
+  GlacierPollStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-poll"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+      TemplateURL: glacier-poll/cloudformation.yaml
 
   GlacierNotificationsStack:
     Type: AWS::CloudFormation::Stack
