@@ -91,18 +91,18 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-  #GlacierUpkeepStack:
-  #  Type: AWS::CloudFormation::Stack
-  #  Properties:
-  #    Parameters:
-  #      Name: !Sub "${Name}-glacier-upkeep"
-  #      LogLevel: !Ref LogLevel
-  #      BundlesTable: !Ref BundlesTable
-  #      ObjectsTable: !Ref ObjectsTable
-  #      EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-  #      RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
-  #      PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
-  #    TemplateURL: glacier-upkeep/cloudformation.yaml
+  GlacierUpkeepStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-upkeep"
+        LogLevel: !Ref LogLevel
+        BundlesTable: !Ref BundlesTable
+        ObjectsTable: !Ref ObjectsTable
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
+        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
+        PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
+      TemplateURL: glacier-upkeep/cloudformation.yaml
 
   GlacierRestoreStack:
     Type: AWS::CloudFormation::Stack

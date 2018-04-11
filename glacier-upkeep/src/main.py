@@ -18,17 +18,23 @@ def setup():
     return config
 
 
-def get_objects_by_availability(availability, table):
+def get_objects_by_request_status(request_status, table):
     results = dynamodb.query(
         TableName=table,
-        IndexName='availability',
-        KeyConditionExpression='availability = :1',
+        IndexName='request_status',
+        KeyConditionExpression='request_status = :1',
         ExpressionAttributeValues={
-            ':1': {'S': availability},
+            ':1': {'S': request_status},
         },
-        ProjectionExpression='object_key',
+        ProjectionExpression='bundle_id,object_key',
     )
-    objects = [item['object_key']['S'] for item in results['Items']]
+    objects = [
+        {
+            'bundle_id': item['bundle_id']['S'],
+            'object_key': item['object_key']['S'],
+        }
+        for item in results['Items']
+    ]
     return objects
 
 
@@ -73,39 +79,52 @@ def get_open_bundles(table):
     return bundles
 
 
-def get_objects_for_bundle(bundle_id, table):
+def bundle_complete(bundle_id, table):
     results = dynamodb.query(
         TableName=table,
         KeyConditionExpression='bundle_id = :1',
+        FilterExpression='not request_status in (:2, :3)',
         ExpressionAttributeValues={
             ':1': {'S': bundle_id},
+            ':2': {'S': 'available'},
+            ':3': {'S': 'refresh'},
         },
         ProjectionExpression='object_key',
     )
-    objects = [item['object_key']['S'] for item in results['Items']]
-    return objects
-
-
-def bundle_complete(bundle_id, bundle_objects_table, pending_objects):
-    bundle_objects = get_objects_for_bundle(bundle_id, bundle_objects_table)
-    return not bool(set(bundle_objects) & set(pending_objects))
+    return len(results['Items']) == 0
 
 
 def upkeep(config):
-    pending_objects = get_objects_by_availability('pending', config['objects_table'])
-    refresh_objects = get_objects_by_availability('refresh', config['objects_table'])
+    new_objects = get_objects_by_request_status('new', config['objects_table'])
+    refresh_objects = get_objects_by_request_status('refresh', config['objects_table'])
 
-    for obj in pending_objects + refresh_objects:
-        payload = {'object_key': obj, 'refresh': obj in refresh_objects}
+    for obj in new_objects + refresh_objects:
+        payload = {
+            'bundle_id': obj['bundle_id'],
+            'object_key': obj['object_key'],
+            'tier': 'Expedited',
+        }
         lamb.invoke(
-            FunctionName=config['glacier_object_lambda'],
+            FunctionName=config['restore_object_lambda'],
+            Payload=json.dumps(payload),
+            InvocationType='Event',
+        )
+
+    pending_objects = get_objects_by_request_status('pending', config['objects_table'])
+    for obj in pending_objects:
+        payload = {
+            'bundle_id': obj['bundle_id'],
+            'object_key': obj['object_key'],
+        }
+        lamb.invoke(
+            FunctionName=config['poll_object_lambda'],
             Payload=json.dumps(payload),
             InvocationType='Event',
         )
 
     open_bundles = get_open_bundles(config['bundles_table'])
     for bundle in open_bundles:
-        if bundle_complete(bundle['bundle_id'], config['bundle_objects_table'], pending_objects):
+        if bundle_complete(bundle['bundle_id'], config['objects_table']):
             close_bundle(bundle['bundle_id'], config['bundles_table'])
             send_sqs_message(bundle, config['email_queue_name'])
 
