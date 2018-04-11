@@ -16,19 +16,19 @@ Parameters:
     - INFO
     - DEBUG
 
-  ObjectsTable:
-    Type: String
-
   BundlesTable:
     Type: String
 
-  BundleObjectsTable:
+  ObjectsTable:
     Type: String
 
   EmailQueueName:
     Type: String
 
-  GlacierObjectLambda:
+  RestoreObjectLambda:
+    Type: String
+
+  PollObjectLambda:
     Type: String
 
 Resources:
@@ -71,9 +71,7 @@ Resources:
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: dynamodb:Query
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/availability"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
+            Resource: "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}/index/request_status"
           - Effect: Allow
             Action:
             - dynamodb:Scan
@@ -81,7 +79,9 @@ Resources:
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
           - Effect: Allow
             Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${GlacierObjectLambda}"
+            Resource:
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PollObjectLambda}"
           - Effect: Allow
             Action:
             - sqs:GetQueueUrl
@@ -103,9 +103,9 @@ Resources:
               "upkeep": {
                 "objects_table": "${ObjectsTable}",
                 "bundles_table": "${BundlesTable}",
-                "bundle_objects_table": "${BundleObjectsTable}",
                 "email_queue_name": "${EmailQueueName}",
-                "glacier_object_lambda": "${GlacierObjectLambda}"
+                "restore_object_lambda": "${RestoreObjectLambda}",
+                "poll_object_lambda": "${PollObjectLambda}"
               }
             }
       Handler: main.lambda_handler
