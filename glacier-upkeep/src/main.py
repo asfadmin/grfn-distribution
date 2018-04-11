@@ -154,7 +154,7 @@ def process_open_bundles(bundles_table, objects_table, email_queue_name):
 
 
 def upkeep(config):
-    process_new_requests(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_user'])
+    process_new_requests(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_bundle'])
     process_refresh_requests(config['objects_table'], config['restore_object_lambda'])
     process_pending_requests(config['objects_table'], config['poll_object_lambda'])
     process_open_bundles(config['bundles_table'], config['objects_table'], config['email_queue_name'])

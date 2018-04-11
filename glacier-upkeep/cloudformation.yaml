@@ -106,7 +106,7 @@ Resources:
                 "email_queue_name": "${EmailQueueName}",
                 "restore_object_lambda": "${RestoreObjectLambda}",
                 "poll_object_lambda": "${PollObjectLambda}",
-                "max_expedited_requests_per_user": 10
+                "max_expedited_requests_per_bundle": 10
               }
             }
       Handler: main.lambda_handler
