@@ -105,7 +105,8 @@ Resources:
                 "bundles_table": "${BundlesTable}",
                 "email_queue_name": "${EmailQueueName}",
                 "restore_object_lambda": "${RestoreObjectLambda}",
-                "poll_object_lambda": "${PollObjectLambda}"
+                "poll_object_lambda": "${PollObjectLambda}",
+                "max_expedited_requests_per_bundle": 10
               }
             }
       Handler: main.lambda_handler

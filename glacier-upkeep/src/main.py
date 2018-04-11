@@ -2,6 +2,7 @@ import json
 from os import environ
 from logging import getLogger
 from datetime import datetime
+from collections import defaultdict
 import boto3
 
 
@@ -94,39 +95,69 @@ def bundle_complete(bundle_id, table):
     return len(results['Items']) == 0
 
 
-def upkeep(config):
-    new_objects = get_objects_by_request_status('new', config['objects_table'])
-    refresh_objects = get_objects_by_request_status('refresh', config['objects_table'])
+def process_new_requests(objects_table, restore_object_lambda, max_expedited_requests):
+    objects = get_objects_by_request_status('new', objects_table)
+    object_count_by_bundle = defaultdict(int)
+    for obj in objects:
+        tier = 'Standard'
+        object_count_by_bundle[obj['bundle_id']] += 1
+        if object_count_by_bundle[obj['bundle_id']] <= max_expedited_requests:
+            tier = 'Expedited'
 
-    for obj in new_objects + refresh_objects:
         payload = {
             'bundle_id': obj['bundle_id'],
             'object_key': obj['object_key'],
-            'tier': 'Expedited',
+            'tier': tier,
         }
         lamb.invoke(
-            FunctionName=config['restore_object_lambda'],
+            FunctionName=restore_object_lambda,
             Payload=json.dumps(payload),
             InvocationType='Event',
         )
 
-    pending_objects = get_objects_by_request_status('pending', config['objects_table'])
-    for obj in pending_objects:
+
+def process_refresh_requests(objects_table, restore_object_lambda):
+    objects = get_objects_by_request_status('refresh', objects_table)
+    for obj in objects:
+        payload = {
+            'bundle_id': obj['bundle_id'],
+            'object_key': obj['object_key'],
+            'tier': 'Standard',
+        }
+        lamb.invoke(
+            FunctionName=restore_object_lambda,
+            Payload=json.dumps(payload),
+            InvocationType='Event',
+        )
+
+
+def process_pending_requests(objects_table, poll_object_lambda):
+    objects = get_objects_by_request_status('pending', objects_table)
+    for obj in objects:
         payload = {
             'bundle_id': obj['bundle_id'],
             'object_key': obj['object_key'],
         }
         lamb.invoke(
-            FunctionName=config['poll_object_lambda'],
+            FunctionName=poll_object_lambda,
             Payload=json.dumps(payload),
             InvocationType='Event',
         )
 
-    open_bundles = get_open_bundles(config['bundles_table'])
+
+def process_open_bundles(bundles_table, objects_table, email_queue_name):
+    open_bundles = get_open_bundles(bundles_table)
     for bundle in open_bundles:
-        if bundle_complete(bundle['bundle_id'], config['objects_table']):
-            close_bundle(bundle['bundle_id'], config['bundles_table'])
-            send_sqs_message(bundle, config['email_queue_name'])
+        if bundle_complete(bundle['bundle_id'], objects_table):
+            close_bundle(bundle['bundle_id'], bundles_table)
+            send_sqs_message(bundle, email_queue_name)
+
+
+def upkeep(config):
+    process_new_requests(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_bundle'])
+    process_refresh_requests(config['objects_table'], config['restore_object_lambda'])
+    process_pending_requests(config['objects_table'], config['poll_object_lambda'])
+    process_open_bundles(config['bundles_table'], config['objects_table'], config['email_queue_name'])
 
 
 def lambda_handler(event, context):
