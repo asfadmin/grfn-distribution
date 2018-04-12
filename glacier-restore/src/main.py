@@ -81,4 +81,5 @@ def process_request(request, config):
 
 def lambda_handler(event, context):
     config = setup()
-    process_request(event, config['request'])
+    for request in event:
+        process_request(request, config['request'])

@@ -175,8 +175,8 @@ Resources:
       - AttributeName: bundle_id
         KeyType: HASH
       ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
       GlobalSecondaryIndexes:
       - IndexName: user
         KeySchema:
@@ -187,8 +187,8 @@ Resources:
         Projection:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
-          ReadCapacityUnits: 10
-          WriteCapacityUnits: 5
+          ReadCapacityUnits: 8
+          WriteCapacityUnits: 1
 
   ObjectsTable:
     Type: AWS::DynamoDB::Table
@@ -207,15 +207,13 @@ Resources:
       - AttributeName: object_key
         KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 50
+        ReadCapacityUnits: 20
         WriteCapacityUnits: 40
       GlobalSecondaryIndexes:
       - IndexName: request_status
         KeySchema:
         - AttributeName: request_status
           KeyType: HASH
-        - AttributeName: bundle_id
-          KeyType: RANGE
         Projection:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
@@ -233,5 +231,5 @@ Resources:
       - KeyType: HASH
         AttributeName: user_id
       ProvisionedThroughput:
-        WriteCapacityUnits: 5
         ReadCapacityUnits: 10
+        WriteCapacityUnits: 1
