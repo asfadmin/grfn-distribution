@@ -116,28 +116,18 @@ def process_new_requests(objects_table, restore_object_lambda, max_expedited_req
         )
 
 
-def process_refresh_requests(objects_table, restore_object_lambda):
-    objects = get_objects_by_request_status('refresh', objects_table)
-    for obj in objects:
-        payload = {
-            'bundle_id': obj['bundle_id'],
-            'object_key': obj['object_key'],
-            'tier': 'Standard',
-        }
-        lamb.invoke(
-            FunctionName=restore_object_lambda,
-            Payload=json.dumps(payload),
-            InvocationType='Event',
-        )
-
-
 def process_pending_requests(objects_table, poll_object_lambda):
     objects = get_objects_by_request_status('pending', objects_table)
-    for obj in objects:
-        payload = {
-            'bundle_id': obj['bundle_id'],
-            'object_key': obj['object_key'],
-        }
+    batch_size = 10
+    batches = [objects[i:i+batch_size] for i in range(0, len(objects), batch_size)]
+    for batch in batches:
+        payload = [
+            {
+                'bundle_id': obj['bundle_id'],
+                'object_key': obj['object_key'],
+            }
+            for obj in batch
+        ]
         lamb.invoke(
             FunctionName=poll_object_lambda,
             Payload=json.dumps(payload),
@@ -155,7 +145,6 @@ def process_open_bundles(bundles_table, objects_table, email_queue_name):
 
 def upkeep(config):
     process_new_requests(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_bundle'])
-    process_refresh_requests(config['objects_table'], config['restore_object_lambda'])
     process_pending_requests(config['objects_table'], config['poll_object_lambda'])
     process_open_bundles(config['bundles_table'], config['objects_table'], config['email_queue_name'])
 

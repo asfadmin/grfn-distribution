@@ -32,11 +32,11 @@ def get_request_status(restore_string):
     return 'available'
 
 
-def update_object(event, expiration_date, table):
-    log.info('Object is now available.  Object Key: %s, Expiration Date %s', event['object_key'], str(expiration_date))
+def update_object(request, expiration_date, table):
+    log.info('Object is now available.  Object Key: %s, Expiration Date %s', request['object_key'], str(expiration_date))
     primary_key = {
-        'bundle_id': {'S': event['bundle_id']},
-        'object_key': {'S': event['object_key']},
+        'bundle_id': {'S': request['bundle_id']},
+        'object_key': {'S': request['object_key']},
     }
     dynamodb.update_item(
         TableName=table,
@@ -55,14 +55,15 @@ def get_expiration_date(restore_string):
     return expiration_date
 
 
-def poll_object(event, config):
-    s3_obj = get_object(config['bucket'], event['object_key'])
+def poll_object(request, config):
+    s3_obj = get_object(config['bucket'], request['object_key'])
     request_status = get_request_status(s3_obj.restore)
     if request_status == 'available':
         expiration_date = get_expiration_date(s3_obj.restore)
-        update_object(event, expiration_date, config['objects_table'])
+        update_object(request, expiration_date, config['objects_table'])
 
 
 def lambda_handler(event, context):
     config = setup()
-    poll_object(event, config['poll_object'])
+    for request in event:
+        poll_object(request, config['poll_object'])
