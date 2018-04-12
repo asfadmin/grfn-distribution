@@ -193,7 +193,7 @@ Resources:
   ObjectsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${Name}-objects"
+      TableName: !Sub "${Name}-objects2"
       AttributeDefinitions:
       - AttributeName: bundle_id
         AttributeType: S
@@ -210,7 +210,7 @@ Resources:
         ReadCapacityUnits: 20
         WriteCapacityUnits: 40
       GlobalSecondaryIndexes:
-      - IndexName: request_status2
+      - IndexName: request_status
         KeySchema:
         - AttributeName: request_status
           KeyType: HASH
