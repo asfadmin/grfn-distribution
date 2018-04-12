@@ -94,43 +94,44 @@ def bundle_complete(bundle_id, table):
     return len(results['Items']) == 0
 
 
+def batch_invoke(lambda_name, payload, batch_size):
+    batches = [payload[i:i+batch_size] for i in range(0, len(payload), batch_size)]
+    for batch in batches:
+        lamb.invoke(
+            FunctionName=lambda_name,
+            Payload=json.dumps(batch),
+            InvocationType='Event',
+        )
+
+
 def process_new_requests(objects_table, restore_object_lambda, max_expedited_requests):
     objects = get_objects_by_request_status('new', objects_table)
+    payload = []
     object_count_by_bundle = defaultdict(int)
+
     for obj in objects:
-        payload = {
+        item = {
             'bundle_id': obj['bundle_id'],
             'object_key': obj['object_key'],
         }
-
         object_count_by_bundle[obj['bundle_id']] += 1
-        if object_count_by_bundle[obj['bundle_id']] <= max_expedited_requests:
-            payload['tier'] = 'Expedited'
+        if object_count_by_bundle[item['bundle_id']] <= max_expedited_requests:
+            item['tier'] = 'Expedited'
+        payload.append(item)
 
-        lamb.invoke(
-            FunctionName=restore_object_lambda,
-            Payload=json.dumps(payload),
-            InvocationType='Event',
-        )
+    batch_invoke(restore_object_lambda, payload, 10)
 
 
 def process_pending_requests(objects_table, poll_object_lambda):
     objects = get_objects_by_request_status('pending', objects_table)
-    batch_size = 10
-    batches = [objects[i:i+batch_size] for i in range(0, len(objects), batch_size)]
-    for batch in batches:
-        payload = [
-            {
-                'bundle_id': obj['bundle_id'],
-                'object_key': obj['object_key'],
-            }
-            for obj in batch
-        ]
-        lamb.invoke(
-            FunctionName=poll_object_lambda,
-            Payload=json.dumps(payload),
-            InvocationType='Event',
-        )
+    payload = [
+        {
+            'bundle_id': obj['bundle_id'],
+            'object_key': obj['object_key'],
+        }
+        for obj in objects
+    ]
+    batch_invoke(poll_object_lambda, payload, 50)
 
 
 def process_open_bundles(bundles_table, objects_table, email_queue_name):
