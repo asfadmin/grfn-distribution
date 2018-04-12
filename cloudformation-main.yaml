@@ -218,7 +218,7 @@ Resources:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
           ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+          WriteCapacityUnits: 40
 
   UsersTable:
     Type: AWS::DynamoDB::Table
