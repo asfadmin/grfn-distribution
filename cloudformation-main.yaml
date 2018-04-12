@@ -210,7 +210,7 @@ Resources:
         ReadCapacityUnits: 20
         WriteCapacityUnits: 40
       GlobalSecondaryIndexes:
-      - IndexName: request_status
+      - IndexName: request_status2
         KeySchema:
         - AttributeName: request_status
           KeyType: HASH
