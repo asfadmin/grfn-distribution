@@ -90,9 +90,10 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "process_object": {
+              "request": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
+                "default_tier": "Standard",
                 "retention_days": ${RetentionDays}
               }
             }

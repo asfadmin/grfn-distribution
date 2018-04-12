@@ -28,6 +28,9 @@ Parameters:
   EmailQueueName:
     Type: String
 
+  RestoreObjectLambda:
+    Type: String
+
 Outputs:
 
   LambdaName:
@@ -87,6 +90,9 @@ Resources:
             - sqs:GetQueueUrl
             - sqs:SendMessage
             Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -104,7 +110,8 @@ Resources:
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
                 "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}"
+                "email_queue_name": "${EmailQueueName}",
+                "restore_object_lambda": "${RestoreObjectLambda}"
               }
             }
       Handler: main.lambda_handler

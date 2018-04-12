@@ -50,7 +50,7 @@ def get_objects_for_bundle(bundle_id, cutoff_date, table):
         obj = {
             'object_key': item['object_key']['S'],
             'request_date': item['request_date']['S'],
-            'available': item['request_status']['S'] in ['available', 'refresh'],
+            'available': item['request_status']['S'] == 'available',
         }
         if 'expiration_date' in item:
             obj['expiration_date'] = item['expiration_date']['S']
