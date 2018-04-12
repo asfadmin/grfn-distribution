@@ -84,11 +84,10 @@ def bundle_complete(bundle_id, table):
     results = dynamodb.query(
         TableName=table,
         KeyConditionExpression='bundle_id = :1',
-        FilterExpression='not request_status in (:2, :3)',
+        FilterExpression='request_status != :2',
         ExpressionAttributeValues={
             ':1': {'S': bundle_id},
             ':2': {'S': 'available'},
-            ':3': {'S': 'refresh'},
         },
         ProjectionExpression='object_key',
     )
