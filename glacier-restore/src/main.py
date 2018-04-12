@@ -70,7 +70,8 @@ def restore_object(obj, tier, retention_days):
 
 def process_request(request, config):
     obj = get_object(config['bucket'], request['object_key'])
-    restore_object(obj, request['tier'], config['retention_days'])
+    tier = request.get('tier', config['default_tier'])
+    restore_object(obj, tier, config['retention_days'])
     if 'bundle_id' in request:
         request_status = get_request_status(obj.restore)
         if request_status in ['pending', 'available']:

@@ -89,10 +89,7 @@ def submit_email_to_queue(user_id, queue_name):
 
 
 def restore_object(object_key, restore_object_lambda):
-    payload = {
-        'object_key': object_key,
-        'tier': 'Standard',
-    }
+    payload = {'object_key': object_key}
     lamb.invoke(
         FunctionName=restore_object_lambda,
         Payload=json.dumps(payload),

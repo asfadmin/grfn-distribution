@@ -98,16 +98,15 @@ def process_new_requests(objects_table, restore_object_lambda, max_expedited_req
     objects = get_objects_by_request_status('new', objects_table)
     object_count_by_bundle = defaultdict(int)
     for obj in objects:
-        tier = 'Standard'
-        object_count_by_bundle[obj['bundle_id']] += 1
-        if object_count_by_bundle[obj['bundle_id']] <= max_expedited_requests:
-            tier = 'Expedited'
-
         payload = {
             'bundle_id': obj['bundle_id'],
             'object_key': obj['object_key'],
-            'tier': tier,
         }
+
+        object_count_by_bundle[obj['bundle_id']] += 1
+        if object_count_by_bundle[obj['bundle_id']] <= max_expedited_requests:
+            payload['tier'] = 'Expedited'
+
         lamb.invoke(
             FunctionName=restore_object_lambda,
             Payload=json.dumps(payload),
