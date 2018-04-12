@@ -68,15 +68,16 @@ def restore_object(obj, tier, retention_days):
         log.exception('Failed to restore object.')
 
 
-def process_object(event, config):
-    s3_obj = get_object(config['bucket'], event['object_key'])
-    restore_object(s3_obj, event['tier'], config['retention_days'])
-    request_status = get_request_status(s3_obj.restore)
-    if request_status in ['pending', 'available']:
-        expiration_date = get_expiration_date(s3_obj.restore)
-        update_object(event['bundle_id'], event['object_key'], request_status, expiration_date, config['objects_table'])
+def process_request(request, config):
+    obj = get_object(config['bucket'], request['object_key'])
+    restore_object(obj, request['tier'], config['retention_days'])
+    if 'bundle_id' in request:
+        request_status = get_request_status(obj.restore)
+        if request_status in ['pending', 'available']:
+            expiration_date = get_expiration_date(obj.restore)
+            update_object(request['bundle_id'], request['object_key'], request_status, expiration_date, config['objects_table'])
 
 
 def lambda_handler(event, context):
     config = setup()
-    process_object(event, config['process_object'])
+    process_request(event, config['request'])
