@@ -10,6 +10,7 @@ log = getLogger()
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
+lamb = boto3.client('lambda')
 
 
 def setup():
@@ -87,6 +88,18 @@ def submit_email_to_queue(user_id, queue_name):
     sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
 
 
+def restore_object(object_key, restore_object_lambda):
+    payload = {
+        'object_key': object_key,
+        'tier': 'Standard',
+    }
+    lamb.invoke(
+        FunctionName=restore_object_lambda,
+        Payload=json.dumps(payload),
+        InvocationType='Event',
+    )
+
+
 def process_availability(event, config):
     available = True
     obj = get_s3_object(config['bucket'], event['object_key'])
@@ -99,9 +112,8 @@ def process_availability(event, config):
                 bundle_id = create_new_bundle_for_user(event['user_id'], config['bundles_table'])
             update_object(bundle_id, obj.key, request_status, config['objects_table'])
             submit_email_to_queue(event['user_id'], config['email_queue_name'])
-        # TODO implement refreshes
-        #if restore_state == 'available':
-        #    refresh_object(obj.key, config['refresh_lambda'])
+        if request_status == 'available':
+            restore_object(obj.key, config['restore_object_lambda'])
     return {'available': available}
 
 

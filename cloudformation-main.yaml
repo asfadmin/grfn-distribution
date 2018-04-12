@@ -78,6 +78,7 @@ Resources:
         BundlesTable: !Ref BundlesTable
         ObjectsTable: !Ref ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
+        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
       TemplateURL: glacier-availability/cloudformation.yaml
 
   GlacierStatusStack:
