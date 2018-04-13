@@ -69,10 +69,10 @@ def sync_user():
         update_user(table, user)
 
 
-@app.route('/download/<file_name>')
-def download_redirect(file_name):
+@app.route('/download/<path:object_key>')
+def download_redirect(object_key):
     try:
-        obj = get_s3_object(app.config['bucket_name'], file_name)
+        obj = get_s3_object(app.config['bucket_name'], object_key)
     except ClientError as e:
         if e.response['Error']['Code'] == '404':
             abort(404)
@@ -80,7 +80,7 @@ def download_redirect(file_name):
 
     lamb = boto3.client('lambda')
     payload = {
-        'object_key': file_name,
+        'object_key': object_key,
         'user_id': get_environ_value('URS_USERID'),
     }
     response = lamb.invoke(
@@ -93,6 +93,9 @@ def download_redirect(file_name):
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
+
+    if get_environ_value('CLI_USER_AGENT'):
+        return render_template('cli_user_agent_response.html'), 202
 
     return redirect(url_for('status'))
 

@@ -19,17 +19,12 @@ Parameters:
   Bucket:
     Type: String
 
-  BundlesTable:
-    Type: String
-
   ObjectsTable:
     Type: String
 
-  EmailQueueName:
-    Type: String
-
-  RestoreObjectLambda:
-    Type: String
+  RetentionDays:
+    Type: Number
+    Default: 7
 
 Outputs:
 
@@ -75,24 +70,13 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: dynamodb:Query
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
-          - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
           - Effect: Allow
             Action:
-            - sqs:GetQueueUrl
-            - sqs:SendMessage
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
-          - Effect: Allow
-            Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
+            - s3:GetObject
+            - s3:RestoreObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -106,16 +90,15 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "availability": {
+              "request": {
                 "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
-                "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}",
-                "restore_object_lambda": "${RestoreObjectLambda}"
+                "default_tier": "Standard",
+                "retention_days": ${RetentionDays}
               }
             }
       Handler: main.lambda_handler
       MemorySize: 128
       Role: !GetAtt Role.Arn
       Runtime: python2.7
-      Timeout: 60
+      Timeout: 300

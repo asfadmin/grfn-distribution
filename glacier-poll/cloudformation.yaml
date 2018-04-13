@@ -19,16 +19,7 @@ Parameters:
   Bucket:
     Type: String
 
-  BundlesTable:
-    Type: String
-
   ObjectsTable:
-    Type: String
-
-  EmailQueueName:
-    Type: String
-
-  RestoreObjectLambda:
     Type: String
 
 Outputs:
@@ -75,24 +66,11 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: dynamodb:Query
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
-          - Effect: Allow
             Action: dynamodb:UpdateItem
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${Bucket}/*"
-          - Effect: Allow
-            Action:
-            - sqs:GetQueueUrl
-            - sqs:SendMessage
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
-          - Effect: Allow
-            Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -106,12 +84,9 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "availability": {
+              "poll_object": {
                 "bucket": "${Bucket}",
-                "objects_table": "${ObjectsTable}",
-                "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}",
-                "restore_object_lambda": "${RestoreObjectLambda}"
+                "objects_table": "${ObjectsTable}"
               }
             }
       Handler: main.lambda_handler

@@ -16,13 +16,10 @@ Parameters:
     - INFO
     - DEBUG
 
-  ObjectsTable:
-    Type: String
-
   BundlesTable:
     Type: String
 
-  BundleObjectsTable:
+  ObjectsTable:
     Type: String
 
   RetentionDays:
@@ -73,13 +70,10 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: dynamodb:GetItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-          - Effect: Allow
             Action: dynamodb:Query
             Resource:
             - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
+            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -96,7 +90,6 @@ Resources:
               "status": {
                 "bundles_table": "${BundlesTable}",
                 "objects_table": "${ObjectsTable}",
-                "bundle_objects_table": "${BundleObjectsTable}",
                 "retention_days": ${RetentionDays}
               }
             }

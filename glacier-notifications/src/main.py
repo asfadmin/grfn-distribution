@@ -2,8 +2,8 @@ import json
 from os import environ
 from logging import getLogger
 from operator import itemgetter
-import boto3
 from datetime import datetime, timedelta, date
+import boto3
 from jinja2 import Environment, FileSystemLoader
 
 
@@ -47,46 +47,23 @@ def get_user(user_id, table):
     return user
 
 
-def get_object(object_key, table):
-    results = dynamodb.get_item(
-        TableName=table,
-        Key={'object_key': {'S': object_key}},
-        ProjectionExpression='object_key, expiration_date',
-    )
-    item = results['Item']
-    obj = {
-        'object_key': item['object_key']['S'],
-        'expiration_date': item['expiration_date']['S']
-    }
-    return obj
-
-
-def get_bundle_objects(bundle_id, table):
+def get_objects_for_bundle(bundle_id, table):
     results = dynamodb.query(
         TableName=table,
         KeyConditionExpression='bundle_id = :1',
         ExpressionAttributeValues={
             ':1': {'S': bundle_id},
         },
-        ProjectionExpression='object_key, request_date',
+        ProjectionExpression='object_key, expiration_date, request_date',
     )
-    bundle_objects = [
+    objects = [
         {
             'object_key': item['object_key']['S'],
+            'expiration_date': item['expiration_date']['S'],
             'request_date': item['request_date']['S'],
         }
         for item in results['Items']
     ]
-    return bundle_objects
-
-
-def get_objects_for_bundle(bundle_id, bundle_objects_table, objects_table):
-    objects = []
-    bundle_objects = get_bundle_objects(bundle_id, bundle_objects_table)
-    for bundle_object in bundle_objects:
-        obj = get_object(bundle_object['object_key'], objects_table)
-        obj['request_date'] = bundle_object['request_date']
-        objects.append(obj)
     objects.sort(key=itemgetter('request_date'), reverse=True)
     return objects
 
@@ -153,7 +130,7 @@ def process_sqs_message(sqs_message, config):
         template = 'availability.html'
         data = {
             'hostname': config['hostname'],
-            'objects': get_objects_for_bundle(payload['bundle_id'], config['bundle_objects_table'], config['objects_table']),
+            'objects': get_objects_for_bundle(payload['bundle_id'], config['objects_table']),
             'retention_days': config['retention_days'],
         }
 

@@ -75,10 +75,10 @@ Resources:
         Name: !Sub "${Name}-glacier-availability"
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
-        ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
+        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
       TemplateURL: glacier-availability/cloudformation.yaml
 
   GlacierStatusStack:
@@ -87,25 +87,44 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-status"
         LogLevel: !Ref LogLevel
-        ObjectsTable: !Ref ObjectsTable
         BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
+        ObjectsTable: !Ref ObjectsTable
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
-  GlacierRequestsStack:
+  GlacierUpkeepStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-glacier-requests"
+        Name: !Sub "${Name}-glacier-upkeep"
+        LogLevel: !Ref LogLevel
+        BundlesTable: !Ref BundlesTable
+        ObjectsTable: !Ref ObjectsTable
+        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
+        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
+        PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
+      TemplateURL: glacier-upkeep/cloudformation.yaml
+
+  GlacierRestoreStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-restore"
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
-        BundlesTable: !Ref BundlesTable
-        BundleObjectsTable: !Ref BundleObjectsTable
         RetentionDays: !Ref RetentionDays
-        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-      TemplateURL: glacier-requests/cloudformation.yaml
+      TemplateURL: glacier-restore/cloudformation.yaml
+
+  GlacierPollStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-glacier-poll"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+        ObjectsTable: !Ref ObjectsTable
+      TemplateURL: glacier-poll/cloudformation.yaml
 
   GlacierNotificationsStack:
     Type: AWS::CloudFormation::Stack
@@ -114,7 +133,6 @@ Resources:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
         UsersTable: !Ref UsersTable
-        BundleObjectsTable: !Ref BundleObjectsTable
         ObjectsTable: !Ref ObjectsTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
@@ -169,43 +187,19 @@ Resources:
         Projection:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
-          ReadCapacityUnits: 1
+          ReadCapacityUnits: 8
           WriteCapacityUnits: 1
 
   ObjectsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${Name}-objects"
-      AttributeDefinitions:
-      - AttributeName: object_key
-        AttributeType: S
-      - AttributeName: availability
-        AttributeType: S
-      KeySchema:
-      - AttributeName: object_key
-        KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 10
-        WriteCapacityUnits: 2
-      GlobalSecondaryIndexes:
-      - IndexName: availability
-        KeySchema:
-        - AttributeName: availability
-          KeyType: HASH
-        Projection:
-          ProjectionType: KEYS_ONLY
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-
-  BundleObjectsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${Name}-bundle-objects"
+      TableName: !Sub "${Name}-objects2"
       AttributeDefinitions:
       - AttributeName: bundle_id
         AttributeType: S
       - AttributeName: object_key
+        AttributeType: S
+      - AttributeName: request_status
         AttributeType: S
       KeySchema:
       - AttributeName: bundle_id
@@ -213,8 +207,18 @@ Resources:
       - AttributeName: object_key
         KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 2
-        WriteCapacityUnits: 1
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 30
+      GlobalSecondaryIndexes:
+      - IndexName: request_status
+        KeySchema:
+        - AttributeName: request_status
+          KeyType: HASH
+        Projection:
+          ProjectionType: KEYS_ONLY
+        ProvisionedThroughput:
+          ReadCapacityUnits: 3
+          WriteCapacityUnits: 40
 
   UsersTable:
     Type: AWS::DynamoDB::Table
@@ -227,5 +231,5 @@ Resources:
       - KeyType: HASH
         AttributeName: user_id
       ProvisionedThroughput:
+        ReadCapacityUnits: 10
         WriteCapacityUnits: 1
-        ReadCapacityUnits: 1
