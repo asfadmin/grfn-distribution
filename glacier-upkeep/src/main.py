@@ -131,7 +131,7 @@ def process_pending_requests(objects_table, poll_object_lambda):
         }
         for obj in objects
     ]
-    batch_invoke(poll_object_lambda, payload, 50)
+    batch_invoke(poll_object_lambda, payload, 100)
 
 
 def process_open_bundles(bundles_table, objects_table, email_queue_name):

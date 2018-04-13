@@ -207,8 +207,8 @@ Resources:
       - AttributeName: object_key
         KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 20
-        WriteCapacityUnits: 40
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 30
       GlobalSecondaryIndexes:
       - IndexName: request_status
         KeySchema:
@@ -217,7 +217,7 @@ Resources:
         Projection:
           ProjectionType: KEYS_ONLY
         ProvisionedThroughput:
-          ReadCapacityUnits: 5
+          ReadCapacityUnits: 3
           WriteCapacityUnits: 40
 
   UsersTable:
