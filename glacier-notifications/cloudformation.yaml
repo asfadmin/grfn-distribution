@@ -19,9 +19,6 @@ Parameters:
   UsersTable:
     Type: String
 
-  BundleObjectsTable:
-    Type: String
-
   ObjectsTable:
     Type: String
 
@@ -115,9 +112,6 @@ Resources:
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
           - Effect: Allow
             Action: dynamodb:Query
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundleObjectsTable}"
-          - Effect: Allow
-            Action: dynamodb:GetItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
           - Effect: Allow
             Action: ses:SendEmail
@@ -142,7 +136,6 @@ Resources:
                 "buffer_time_in_millis": 20000,
                 "email_content": {
                   "users_table": "${UsersTable}",
-                  "bundle_objects_table": "${BundleObjectsTable}",
                   "objects_table": "${ObjectsTable}",
                   "hostname": "${Hostname}",
                   "retention_days": ${RetentionDays},
