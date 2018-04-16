@@ -35,7 +35,7 @@ def status():
 
 
 @app.route('/status/<path:object_key>')
-def object_status():
+def object_status(object_key):
 
     lamb = boto3.client('lambda')
     payload = {
