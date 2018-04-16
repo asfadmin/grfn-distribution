@@ -139,6 +139,15 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-notifications/cloudformation.yaml
 
+  ObjectStatusStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-object-status"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+      TemplateURL: object-status/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -150,6 +159,7 @@ Resources:
         PrivateBucket: !Ref PrivateBucket
         UsersTable: !Ref UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId

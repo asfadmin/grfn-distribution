@@ -34,6 +34,26 @@ def status():
     return render_template('status.html', data=data), 200
 
 
+@app.route('/status/<path:object_key>')
+def object_status(object_key):
+
+    lamb = boto3.client('lambda')
+    payload = {
+        'object_key': object_key
+    }
+    response = lamb.invoke(
+        FunctionName=app.config['object_status_lambda'],
+        Payload=json.dumps(payload),
+    )
+
+    response = app.response_class(
+        response=response['Payload'].read(),
+        status=200,
+        mimetype='application/json'
+    )
+    return(response)
+
+
 @app.route('/userprofile', methods=['POST'])
 def set_user_profile():
     user_id = get_environ_value('URS_USERID')
