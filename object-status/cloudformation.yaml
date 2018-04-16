@@ -63,6 +63,9 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "arn:aws:s3:::${Bucket}"
+          - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 

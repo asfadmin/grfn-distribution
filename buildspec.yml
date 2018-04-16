@@ -27,6 +27,7 @@ phases:
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
       - pip install -r glacier-availability/requirements.txt -t glacier-availability/src/
       - pip install -r glacier-status/requirements.txt -t glacier-status/src/
+      - pip install -r object-status/requirements.txt -t object-status/src/
       - pip install -r glacier-upkeep/requirements.txt -t glacier-upkeep/src/
       - pip install -r glacier-restore/requirements.txt -t glacier-restore/src/
       - pip install -r glacier-poll/requirements.txt -t glacier-poll/src/
