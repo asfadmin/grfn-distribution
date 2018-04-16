@@ -42,7 +42,7 @@ def object_status():
         'object_key': object_key
     }
     response = lamb.invoke(
-        FunctionName=app.config['availability_lambda'],
+        FunctionName=app.config['object_status_lambda'],
         Payload=json.dumps(payload),
     )
 
