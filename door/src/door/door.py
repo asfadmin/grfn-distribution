@@ -49,7 +49,7 @@ def object_status(object_key):
     response_payload = json.loads(response['Payload'].read())
 
     if 'errorType' in response_payload:
-        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
+        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
             abort(404)
         else:
             abort(500)
@@ -99,12 +99,6 @@ def sync_user():
 
 @app.route('/download/<path:object_key>')
 def download_redirect(object_key):
-    try:
-        obj = get_s3_object(app.config['bucket_name'], object_key)
-    except ClientError as e:
-        if e.response['Error']['Code'] == '404':
-            abort(404)
-        raise
 
     lamb = boto3.client('lambda')
     payload = {
@@ -115,6 +109,16 @@ def download_redirect(object_key):
         FunctionName=app.config['availability_lambda'],
         Payload=json.dumps(payload),
     )
+
+
+    response_payload = json.loads(response['Payload'].read())
+
+    if 'errorType' in response_payload:
+        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
+            abort(404)
+        else:
+            abort(500)
+
     available = json.loads(response['Payload'].read())['available']
 
     if available:
