@@ -157,7 +157,7 @@ Resources:
         LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
-        PrivateBucket: !Ref PrivateBucket
+        Bucket: !Ref PrivateBucket
         UsersTable: !Ref UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName

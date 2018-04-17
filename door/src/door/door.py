@@ -1,10 +1,9 @@
 import os
 import json
 from datetime import datetime
-
 import boto3
-from botocore.exceptions import ClientError
 from flask import Flask, redirect, render_template, request, abort, url_for
+
 
 app = Flask(__name__)
 s3 = boto3.client('s3')
@@ -119,7 +118,7 @@ def download_redirect(object_key):
             abort(500)
  
     if response_payload['available']:
-        signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
+        signed_url = get_link(app.config['bucket'], object_key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
 
