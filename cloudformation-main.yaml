@@ -74,11 +74,11 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-availability"
         LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
         BundlesTable: !Ref BundlesTable
         ObjectsTable: !Ref ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
         RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
       TemplateURL: glacier-availability/cloudformation.yaml
 
   GlacierStatusStack:
