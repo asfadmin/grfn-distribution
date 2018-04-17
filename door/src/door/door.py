@@ -49,7 +49,7 @@ def object_status(object_key):
     response_payload = json.loads(response['Payload'].read())
 
     if 'errorType' in response_payload:
-        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
+        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
             abort(404)
         else:
             abort(500)
@@ -114,7 +114,7 @@ def download_redirect(object_key):
     response_payload = json.loads(response['Payload'].read())
 
     if 'errorType' in response_payload:
-        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
+        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
             abort(404)
         else:
             abort(500)
