@@ -104,8 +104,8 @@ def batch_invoke(lambda_name, payload, batch_size):
         )
 
 
-def process_new_requests(objects_table, restore_object_lambda, max_expedited_requests):
-    objects = get_objects_by_request_status('new', objects_table)
+def process_archived_objects(objects_table, restore_object_lambda, max_expedited_requests):
+    objects = get_objects_by_request_status('archived', objects_table)
     payload = []
     object_count_by_bundle = defaultdict(int)
 
@@ -122,8 +122,8 @@ def process_new_requests(objects_table, restore_object_lambda, max_expedited_req
     batch_invoke(restore_object_lambda, payload, 10)
 
 
-def process_pending_requests(objects_table, poll_object_lambda):
-    objects = get_objects_by_request_status('pending', objects_table)
+def process_pending_objects(objects_table, poll_object_lambda):
+    objects = get_objects_by_request_status('retrieving', objects_table)
     payload = [
         {
             'bundle_id': obj['bundle_id'],
@@ -143,8 +143,8 @@ def process_open_bundles(bundles_table, objects_table, email_queue_name):
 
 
 def upkeep(config):
-    process_new_requests(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_bundle'])
-    process_pending_requests(config['objects_table'], config['poll_object_lambda'])
+    process_archived_objects(config['objects_table'], config['restore_object_lambda'], config['max_expedited_requests_per_bundle'])
+    process_pending_objects(config['objects_table'], config['poll_object_lambda'])
     process_open_bundles(config['bundles_table'], config['objects_table'], config['email_queue_name'])
 
 

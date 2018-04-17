@@ -16,9 +16,6 @@ Parameters:
     - INFO
     - DEBUG
 
-  Bucket:
-    Type: String
-
   BundlesTable:
     Type: String
 
@@ -29,6 +26,9 @@ Parameters:
     Type: String
 
   RestoreObjectLambda:
+    Type: String
+
+  ObjectStatusLambda:
     Type: String
 
 Outputs:
@@ -83,16 +83,15 @@ Resources:
             - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
             - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
           - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
-          - Effect: Allow
             Action:
             - sqs:GetQueueUrl
             - sqs:SendMessage
             Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
           - Effect: Allow
             Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
+            Resource:
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -107,11 +106,11 @@ Resources:
             {
               "log_level": "${LogLevel}",
               "availability": {
-                "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
                 "bundles_table": "${BundlesTable}",
                 "email_queue_name": "${EmailQueueName}",
-                "restore_object_lambda": "${RestoreObjectLambda}"
+                "restore_object_lambda": "${RestoreObjectLambda}",
+                "object_status_lambda": "${ObjectStatusLambda}"
               }
             }
       Handler: main.lambda_handler
