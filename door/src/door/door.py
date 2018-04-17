@@ -35,14 +35,14 @@ def status():
 
 
 @app.route('/status/<path:object_key>')
-def object_status():
+def object_status(object_key):
 
     lamb = boto3.client('lambda')
     payload = {
         'object_key': object_key
     }
     response = lamb.invoke(
-        FunctionName=app.config['availability_lambda'],
+        FunctionName=app.config['object_status_lambda'],
         Payload=json.dumps(payload),
     )
 
