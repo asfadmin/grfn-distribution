@@ -24,7 +24,7 @@ Parameters:
     Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
     Type: List<AWS::EC2::Subnet::Id>
 
-  PrivateBucket:
+  Bucket:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
@@ -146,7 +146,7 @@ Resources:
           Statement:
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
           - Effect: Allow
             Action:
             - dynamodb:GetItem
@@ -187,7 +187,7 @@ Resources:
           Value: !Sub |-
             {
               "aws_region": "${AWS::Region}",
-              "bucket_name": "${PrivateBucket}",
+              "bucket": "${Bucket}",
               "expire_time_in_seconds": 15,
               "users_table": "${UsersTable}",
               "availability_lambda": "${AvailabilityLambda}",
