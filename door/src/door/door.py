@@ -102,11 +102,10 @@ def download_redirect(object_key):
 
     lamb = boto3.client('lambda')
     payload = {
-        'object_key': object_key,
-        'user_id': get_environ_value('URS_USERID'),
+        'object_key': object_key
     }
     response = lamb.invoke(
-        FunctionName=app.config['availability_lambda'],
+        FunctionName=app.config['object_status_lambda'],
         Payload=json.dumps(payload),
     )
 
