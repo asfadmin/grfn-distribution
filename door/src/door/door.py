@@ -35,23 +35,32 @@ def status():
 
 
 @app.route('/status/<path:object_key>')
-def object_status(object_key):
+def object_status():
 
     lamb = boto3.client('lambda')
     payload = {
         'object_key': object_key
     }
     response = lamb.invoke(
-        FunctionName=app.config['object_status_lambda'],
+        FunctionName=app.config['availability_lambda'],
         Payload=json.dumps(payload),
     )
+
+    payload = json.loads(response['Payload'].read())
+
+    if 'errorType' in payload:
+        if payload['errorType'] == 'ClientError':
+            if '404' in payload['errorMessage']:
+                abort(404)
+            else:
+                abort(500)
 
     response = app.response_class(
         response=response['Payload'].read(),
         status=200,
         mimetype='application/json'
     )
-    return(response)
+    return response
 
 
 @app.route('/userprofile', methods=['POST'])
