@@ -46,17 +46,16 @@ def object_status(object_key):
         Payload=json.dumps(payload),
     )
 
-    payload = json.loads(response['Payload'].read())
+    response_payload = json.loads(response['Payload'].read())
 
-    if 'errorType' in payload:
-        if payload['errorType'] == 'ClientError':
-            if '404' in payload['errorMessage']:
-                abort(404)
-            else:
-                abort(500)
+    if 'errorType' in response_payload:
+        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
+            abort(404)
+        else:
+            abort(500)
 
     response = app.response_class(
-        response=response['Payload'].read(),
+        response=json.dumps(response_payload),
         status=200,
         mimetype='application/json'
     )
