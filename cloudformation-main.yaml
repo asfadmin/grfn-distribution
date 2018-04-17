@@ -122,7 +122,7 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-poll"
         LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         ObjectsTable: !Ref ObjectsTable
       TemplateURL: glacier-poll/cloudformation.yaml
 
