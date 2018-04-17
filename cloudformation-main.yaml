@@ -114,6 +114,7 @@ Resources:
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
         RetentionDays: !Ref RetentionDays
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
       TemplateURL: glacier-restore/cloudformation.yaml
 
   GlacierPollStack:
