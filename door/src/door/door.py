@@ -7,8 +7,7 @@ from botocore.exceptions import ClientError
 from flask import Flask, redirect, render_template, request, abort, url_for
 
 app = Flask(__name__)
-s3_resource = boto3.resource('s3')
-s3_client = boto3.client('s3')
+s3 = boto3.client('s3')
 
 
 @app.before_first_request
@@ -99,12 +98,6 @@ def sync_user():
 
 @app.route('/download/<path:object_key>')
 def download_redirect(object_key):
-    try:
-        obj = get_s3_object(app.config['bucket_name'], object_key)
-    except ClientError as e:
-        if e.response['Error']['Code'] == '404':
-            abort(404)
-        raise
 
     lamb = boto3.client('lambda')
     payload = {
@@ -115,9 +108,17 @@ def download_redirect(object_key):
         FunctionName=app.config['availability_lambda'],
         Payload=json.dumps(payload),
     )
-    available = json.loads(response['Payload'].read())['available']
 
-    if available:
+
+    response_payload = json.loads(response['Payload'].read())
+
+    if 'errorType' in response_payload:
+        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
+            abort(404)
+        else:
+            abort(500)
+ 
+    if response_payload['available']:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
         return redirect(signed_url)
@@ -126,12 +127,6 @@ def download_redirect(object_key):
         return render_template('cli_user_agent_response.html'), 202
 
     return redirect(url_for('status'))
-
-
-def get_s3_object(bucket, key):
-    obj = s3_resource.Object(bucket, key)
-    obj.load()
-    return obj
 
 
 def update_user(table, user):
@@ -173,7 +168,7 @@ def get_environ_value(key):
 
 
 def get_link(bucket_name, object_key, expire_time_in_seconds):
-    url = s3_client.generate_presigned_url(
+    url = s3.generate_presigned_url(
         ClientMethod='get_object',
         Params={
             'Bucket': bucket_name,
