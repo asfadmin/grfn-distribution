@@ -49,7 +49,7 @@ def object_status(object_key):
     response_payload = json.loads(response['Payload'].read())
 
     if 'errorType' in response_payload:
-        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
+        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
             abort(404)
         else:
             abort(500)
@@ -102,10 +102,11 @@ def download_redirect(object_key):
 
     lamb = boto3.client('lambda')
     payload = {
-        'object_key': object_key
+        'object_key': object_key,
+        'user_id': get_environ_value('URS_USERID'),
     }
     response = lamb.invoke(
-        FunctionName=app.config['object_status_lambda'],
+        FunctionName=app.config['availability_lambda'],
         Payload=json.dumps(payload),
     )
 
@@ -113,12 +114,12 @@ def download_redirect(object_key):
     response_payload = json.loads(response['Payload'].read())
 
     if 'errorType' in response_payload:
-        if response_payload['errorType'] == 'ClientError' and '404' in response_payload['errorMessage']:
+        if response_payload['errorType'] == 'ClientError' && '404' in response_payload['errorMessage']:
             abort(404)
         else:
             abort(500)
 
-    available = json.loads(response['Payload'].read())['available']
+    available = response_payload['available']
 
     if available:
         signed_url = get_link(obj.bucket_name, obj.key, app.config['expire_time_in_seconds'])
