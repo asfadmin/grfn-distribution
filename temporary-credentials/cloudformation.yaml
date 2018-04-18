@@ -85,6 +85,9 @@ Resources:
           - Effect: Allow
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
+          - Effect: Allow
+            Action: iam:GetRolePolicy
+            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Name}-access"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -99,8 +102,14 @@ Resources:
             {
               "log_level": "${LogLevel}",
               "temporary_credentials": {
-                "role_arn": "${AccessRole.Arn}",
-                "duration_seconds": 900
+                "credentials": {
+                    "role_arn": "${AccessRole.Arn}",
+                    "duration_seconds": 900
+                },
+                "policy": {
+                    "role_name": "${AccessRole}",
+                    "policy_name": "policy"
+                }
               }
             }
       Handler: main.lambda_handler
