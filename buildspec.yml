@@ -11,7 +11,7 @@ environment_variables:
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "PROD"
-    SHA1: "c440630"
+    SHA1: "4303d95"
 
 phases:
   pre_build:
