@@ -74,11 +74,11 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-availability"
         LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
         BundlesTable: !Ref BundlesTable
         ObjectsTable: !Ref ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
         RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
       TemplateURL: glacier-availability/cloudformation.yaml
 
   GlacierStatusStack:
@@ -114,6 +114,7 @@ Resources:
         Bucket: !Ref PrivateBucket
         ObjectsTable: !Ref ObjectsTable
         RetentionDays: !Ref RetentionDays
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
       TemplateURL: glacier-restore/cloudformation.yaml
 
   GlacierPollStack:
@@ -122,7 +123,7 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-poll"
         LogLevel: !Ref LogLevel
-        Bucket: !Ref PrivateBucket
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         ObjectsTable: !Ref ObjectsTable
       TemplateURL: glacier-poll/cloudformation.yaml
 
@@ -139,6 +140,15 @@ Resources:
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-notifications/cloudformation.yaml
 
+  ObjectStatusStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-object-status"
+        LogLevel: !Ref LogLevel
+        Bucket: !Ref PrivateBucket
+      TemplateURL: object-status/cloudformation.yaml
+
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -147,9 +157,10 @@ Resources:
         LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
-        PrivateBucket: !Ref PrivateBucket
+        Bucket: !Ref PrivateBucket
         UsersTable: !Ref UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
+        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId

@@ -16,19 +16,7 @@ Parameters:
     - INFO
     - DEBUG
 
-  BundlesTable:
-    Type: String
-
-  ObjectsTable:
-    Type: String
-
-  EmailQueueName:
-    Type: String
-
-  RestoreObjectLambda:
-    Type: String
-
-  ObjectStatusLambda:
+  Bucket:
     Type: String
 
 Outputs:
@@ -75,23 +63,11 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
-            Action: dynamodb:Query
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}/index/user"
+            Action: s3:ListBucket
+            Resource: !Sub "arn:aws:s3:::${Bucket}"
           - Effect: Allow
-            Action: dynamodb:UpdateItem
-            Resource:
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-            - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BundlesTable}"
-          - Effect: Allow
-            Action:
-            - sqs:GetQueueUrl
-            - sqs:SendMessage
-            Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${EmailQueueName}"
-          - Effect: Allow
-            Action: lambda:InvokeFunction
-            Resource:
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${RestoreObjectLambda}"
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -105,13 +81,7 @@ Resources:
           CONFIG: !Sub |-
             {
               "log_level": "${LogLevel}",
-              "availability": {
-                "objects_table": "${ObjectsTable}",
-                "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}",
-                "restore_object_lambda": "${RestoreObjectLambda}",
-                "object_status_lambda": "${ObjectStatusLambda}"
-              }
+              "bucket": "${Bucket}"
             }
       Handler: main.lambda_handler
       MemorySize: 128
