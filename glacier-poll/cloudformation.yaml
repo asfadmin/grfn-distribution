@@ -16,7 +16,7 @@ Parameters:
     - INFO
     - DEBUG
 
-  Bucket:
+  ObjectStatusLambda:
     Type: String
 
   ObjectsTable:
@@ -66,11 +66,11 @@ Resources:
             Action: sqs:SendMessage
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
+          - Effect: Allow
             Action: dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
     Type: AWS::Lambda::Function
@@ -85,7 +85,7 @@ Resources:
             {
               "log_level": "${LogLevel}",
               "poll_object": {
-                "bucket": "${Bucket}",
+                "object_status_lambda": "${ObjectStatusLambda}",
                 "objects_table": "${ObjectsTable}"
               }
             }

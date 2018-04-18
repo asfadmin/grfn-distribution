@@ -24,7 +24,7 @@ Parameters:
     Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
     Type: List<AWS::EC2::Subnet::Id>
 
-  PrivateBucket:
+  Bucket:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
@@ -35,6 +35,9 @@ Parameters:
     Type: String
 
   StatusLambda:
+    Type: String
+
+  ObjectStatusLambda:
     Type: String
 
   DoorContainerImage:
@@ -142,11 +145,8 @@ Resources:
           Version: 2012-10-17
           Statement:
           - Effect: Allow
-            Action: s3:ListBucket
-            Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
-          - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
           - Effect: Allow
             Action:
             - dynamodb:GetItem
@@ -157,6 +157,7 @@ Resources:
             Resource:
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -186,11 +187,12 @@ Resources:
           Value: !Sub |-
             {
               "aws_region": "${AWS::Region}",
-              "bucket_name": "${PrivateBucket}",
+              "bucket": "${Bucket}",
               "expire_time_in_seconds": 15,
               "users_table": "${UsersTable}",
               "availability_lambda": "${AvailabilityLambda}",
               "status_lambda": "${StatusLambda}",
+              "object_status_lambda": "${ObjectStatusLambda}",
               "retention_days": ${RetentionDays}
             }
         - Name: SERVER_NAME

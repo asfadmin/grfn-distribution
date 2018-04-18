@@ -26,6 +26,9 @@ Parameters:
     Type: Number
     Default: 7
 
+  ObjectStatusLambda:
+    Type: String
+
 Outputs:
 
   LambdaName:
@@ -73,9 +76,10 @@ Resources:
             Action: dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ObjectsTable}"
           - Effect: Allow
-            Action:
-            - s3:GetObject
-            - s3:RestoreObject
+            Action: lambda:InvokeFunction
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
+          - Effect: Allow
+            Action: s3:RestoreObject
             Resource: !Sub "arn:aws:s3:::${Bucket}/*"
 
   Lambda:
@@ -91,10 +95,13 @@ Resources:
             {
               "log_level": "${LogLevel}",
               "request": {
-                "bucket": "${Bucket}",
                 "objects_table": "${ObjectsTable}",
-                "default_tier": "Standard",
-                "retention_days": ${RetentionDays}
+                "object_status_lambda": "${ObjectStatusLambda}",
+                "restore": {
+                  "bucket": "${Bucket}",
+                  "default_tier": "Standard",
+                  "retention_days": ${RetentionDays}
+                }
               }
             }
       Handler: main.lambda_handler
