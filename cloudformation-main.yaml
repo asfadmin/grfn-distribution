@@ -68,14 +68,21 @@ Outputs:
 
 Resources:
 
+  DynamodbStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-db"
+      TemplateURL: dynamodb/cloudformation.yaml
+
   GlacierAvailabilityStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-availability"
         LogLevel: !Ref LogLevel
-        BundlesTable: !Ref BundlesTable
-        ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
         RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
@@ -87,8 +94,8 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-status"
         LogLevel: !Ref LogLevel
-        BundlesTable: !Ref BundlesTable
-        ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-status/cloudformation.yaml
 
@@ -98,8 +105,8 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-upkeep"
         LogLevel: !Ref LogLevel
-        BundlesTable: !Ref BundlesTable
-        ObjectsTable: !Ref ObjectsTable
+        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
         RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
         PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
@@ -112,7 +119,7 @@ Resources:
         Name: !Sub "${Name}-glacier-restore"
         LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
-        ObjectsTable: !Ref ObjectsTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
       TemplateURL: glacier-restore/cloudformation.yaml
@@ -124,7 +131,7 @@ Resources:
         Name: !Sub "${Name}-glacier-poll"
         LogLevel: !Ref LogLevel
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
-        ObjectsTable: !Ref ObjectsTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
       TemplateURL: glacier-poll/cloudformation.yaml
 
   GlacierNotificationsStack:
@@ -133,8 +140,8 @@ Resources:
       Parameters:
         Name: !Sub "${Name}-glacier-notifications"
         LogLevel: !Ref LogLevel
-        UsersTable: !Ref UsersTable
-        ObjectsTable: !Ref ObjectsTable
+        UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
+        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         Hostname: !Ref Hostname
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
         RetentionDays: !Ref RetentionDays
@@ -167,7 +174,7 @@ Resources:
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         Bucket: !Ref PrivateBucket
-        UsersTable: !Ref UsersTable
+        UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
@@ -180,77 +187,3 @@ Resources:
         Hostname: !Ref Hostname
         RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
-
-  BundlesTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${Name}-bundles"
-      AttributeDefinitions:
-      - AttributeName: bundle_id
-        AttributeType: S
-      - AttributeName: user_id
-        AttributeType: S
-      - AttributeName: close_date
-        AttributeType: S
-      KeySchema:
-      - AttributeName: bundle_id
-        KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
-      GlobalSecondaryIndexes:
-      - IndexName: user
-        KeySchema:
-        - AttributeName: user_id
-          KeyType: HASH
-        - AttributeName: close_date
-          KeyType: RANGE
-        Projection:
-          ProjectionType: KEYS_ONLY
-        ProvisionedThroughput:
-          ReadCapacityUnits: 8
-          WriteCapacityUnits: 1
-
-  ObjectsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${Name}-objects"
-      AttributeDefinitions:
-      - AttributeName: bundle_id
-        AttributeType: S
-      - AttributeName: object_key
-        AttributeType: S
-      - AttributeName: request_status
-        AttributeType: S
-      KeySchema:
-      - AttributeName: bundle_id
-        KeyType: HASH
-      - AttributeName: object_key
-        KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 30
-      GlobalSecondaryIndexes:
-      - IndexName: request_status
-        KeySchema:
-        - AttributeName: request_status
-          KeyType: HASH
-        Projection:
-          ProjectionType: KEYS_ONLY
-        ProvisionedThroughput:
-          ReadCapacityUnits: 3
-          WriteCapacityUnits: 40
-
-  UsersTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${Name}-users"
-      AttributeDefinitions:
-      - AttributeName: user_id
-        AttributeType: S
-      KeySchema:
-      - KeyType: HASH
-        AttributeName: user_id
-      ProvisionedThroughput:
-        ReadCapacityUnits: 10
-        WriteCapacityUnits: 1

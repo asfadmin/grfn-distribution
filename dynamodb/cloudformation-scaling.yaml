@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  Name:
+    Type: String
+
+  ResourceId:
+    Type: String
+
+  ResourceType:
+    Type: String
+    AllowedValues:
+    - table
+    - index
+
+  MinReadCapacity:
+    Type: Number
+    MinValue: 1
+
+  MaxReadCapacity:
+    Type: Number
+    MinValue: 1
+
+  MinWriteCapacity:
+    Type: Number
+    MinValue: 1
+
+  MaxWriteCapacity:
+    Type: Number
+    MinValue: 1
+
+Resources:
+
+  ReadCapacityScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: dynamodb
+      ResourceId: !Ref ResourceId
+      ScalableDimension: !Sub "dynamodb:${ResourceType}:ReadCapacityUnits"
+      MinCapacity: !Ref MinReadCapacity
+      MaxCapacity: !Ref MaxReadCapacity
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable"
+
+  WriteCapacityScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: dynamodb
+      ResourceId: !Ref ResourceId
+      ScalableDimension: !Sub "dynamodb:${ResourceType}:WriteCapacityUnits"
+      MinCapacity: !Ref MinWriteCapacity
+      MaxCapacity: !Ref MaxWriteCapacity
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable"
+
+  ReadScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${Name}-read-policy"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ReadCapacityScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 50.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+
+  WriteScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${Name}-write-policy"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WriteCapacityScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 50.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
