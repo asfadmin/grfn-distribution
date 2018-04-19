@@ -7,7 +7,6 @@ from flask import Flask, redirect, render_template, request, abort, url_for
 
 app = Flask(__name__)
 s3 = boto3.client('s3')
-lamb = boto3.client('lambda')
 
 
 @app.before_first_request
@@ -38,6 +37,7 @@ def object_status(object_key):
     payload = {
         'object_key': object_key
     }
+    lamb = boto3.client('lambda')
     response = lamb.invoke(
         FunctionName=app.config['object_status_lambda'],
         Payload=json.dumps(payload),
@@ -78,6 +78,7 @@ def show_user_profile():
 @app.route('/credentials', methods=['GET'])
 def get_temporary_credentials():
     payload = {'user_id': get_environ_value('URS_USERID')}
+    lamb = boto3.client('lambda')
     response = lamb.invoke(
         FunctionName=app.config['temporary_credentials_lambda'],
         Payload=json.dumps(payload),
@@ -118,6 +119,7 @@ def download_redirect(object_key):
         'object_key': object_key,
         'user_id': get_environ_value('URS_USERID'),
     }
+    lamb = boto3.client('lambda')
     response = lamb.invoke(
         FunctionName=app.config['availability_lambda'],
         Payload=json.dumps(payload),
@@ -195,6 +197,7 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
 
 def get_objects_for_user(status_lambda, user_id):
     payload = {'user_id': user_id}
+    lamb = boto3.client('lambda')
     response = lamb.invoke(
         FunctionName=status_lambda,
         Payload=json.dumps(payload),
