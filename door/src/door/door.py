@@ -7,6 +7,7 @@ from flask import Flask, redirect, render_template, request, abort, url_for
 
 app = Flask(__name__)
 s3 = boto3.client('s3')
+lamb = boto3.client('lambda')
 
 
 @app.before_first_request
@@ -34,8 +35,6 @@ def status():
 
 @app.route('/status/<path:object_key>')
 def object_status(object_key):
-
-    lamb = boto3.client('lambda')
     payload = {
         'object_key': object_key
     }
@@ -76,6 +75,24 @@ def show_user_profile():
     return render_template('userprofile.html', user=user), 200
 
 
+@app.route('/credentials', methods=['GET'])
+def get_temporary_credentials():
+    payload = {'user_id': get_environ_value('URS_USERID')}
+    response = lamb.invoke(
+        FunctionName=app.config['temporary_credentials_lambda'],
+        Payload=json.dumps(payload),
+    )
+    response_payload = json.loads(response['Payload'].read())
+    if 'errorType' in response_payload:
+        abort(500)
+    response = app.response_class(
+        response=json.dumps(response_payload),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+
 @app.before_request
 def sync_user():
     table = app.config['users_table']
@@ -97,8 +114,6 @@ def sync_user():
 
 @app.route('/download/<path:object_key>')
 def download_redirect(object_key):
-
-    lamb = boto3.client('lambda')
     payload = {
         'object_key': object_key,
         'user_id': get_environ_value('URS_USERID'),
@@ -116,7 +131,7 @@ def download_redirect(object_key):
             abort(404)
         else:
             abort(500)
- 
+
     if response_payload['available']:
         signed_url = get_link(app.config['bucket'], object_key, app.config['expire_time_in_seconds'])
         signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
@@ -180,7 +195,6 @@ def get_link(bucket_name, object_key, expire_time_in_seconds):
 
 def get_objects_for_user(status_lambda, user_id):
     payload = {'user_id': user_id}
-    lamb = boto3.client('lambda')
     response = lamb.invoke(
         FunctionName=status_lambda,
         Payload=json.dumps(payload),

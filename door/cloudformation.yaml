@@ -40,6 +40,9 @@ Parameters:
   ObjectStatusLambda:
     Type: String
 
+  TemporaryCredentialsLambda:
+    Type: String
+
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -158,6 +161,7 @@ Resources:
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -193,6 +197,7 @@ Resources:
               "availability_lambda": "${AvailabilityLambda}",
               "status_lambda": "${StatusLambda}",
               "object_status_lambda": "${ObjectStatusLambda}",
+              "temporary_credentials_lambda": "${TemporaryCredentialsLambda}",
               "retention_days": ${RetentionDays}
             }
         - Name: SERVER_NAME
