@@ -32,6 +32,18 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
 
+  UsersScalingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ResourceId: !Sub "table/${UsersTable}"
+        ResourceType: table
+        MinReadCapacity: 1
+        MaxReadCapacity: 10
+        MinWriteCapacity: 1
+        MaxWriteCapacity: 10
+      TemplateURL: cloudformation-scaling.yaml
+
   BundlesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -61,6 +73,30 @@ Resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+
+  BundlesScalingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ResourceId: !Sub "table/${BundlesTable}"
+        ResourceType: table
+        MinReadCapacity: 1
+        MaxReadCapacity: 10
+        MinWriteCapacity: 1
+        MaxWriteCapacity: 10
+      TemplateURL: cloudformation-scaling.yaml
+
+  BundlesIndexScalingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ResourceId: !Sub "table/${BundlesTable}/index/user"
+        ResourceType: index
+        MinReadCapacity: 1
+        MaxReadCapacity: 10
+        MinWriteCapacity: 1
+        MaxWriteCapacity: 10
+      TemplateURL: cloudformation-scaling.yaml
 
   ObjectsTable:
     Type: AWS::DynamoDB::Table
@@ -92,37 +128,10 @@ Resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 3
 
-  UsersScalingStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-users"
-        ResourceId: !Sub "table/${UsersTable}"
-        ResourceType: table
-        MinReadCapacity: 1
-        MaxReadCapacity: 10
-        MinWriteCapacity: 1
-        MaxWriteCapacity: 10
-      TemplateURL: cloudformation-scaling.yaml
-
-  BundlesScalingStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-bundles"
-        ResourceId: !Sub "table/${BundlesTable}"
-        ResourceType: table
-        MinReadCapacity: 1
-        MaxReadCapacity: 10
-        MinWriteCapacity: 1
-        MaxWriteCapacity: 10
-      TemplateURL: cloudformation-scaling.yaml
-
   ObjectsScalingStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-objects"
         ResourceId: !Sub "table/${ObjectsTable}"
         ResourceType: table
         MinReadCapacity: 1
@@ -131,24 +140,10 @@ Resources:
         MaxWriteCapacity: 50
       TemplateURL: cloudformation-scaling.yaml
 
-  BundlesIndexScalingStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-bundles-index"
-        ResourceId: !Sub "table/${BundlesTable}/index/user"
-        ResourceType: index
-        MinReadCapacity: 1
-        MaxReadCapacity: 10
-        MinWriteCapacity: 1
-        MaxWriteCapacity: 10
-      TemplateURL: cloudformation-scaling.yaml
-
   ObjectsIndexScalingStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-objects-index"
         ResourceId: !Sub "table/${ObjectsTable}/index/request_status"
         ResourceType: index
         MinReadCapacity: 1

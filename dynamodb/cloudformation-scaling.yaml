@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
-  Name:
-    Type: String
-
   ResourceId:
     Type: String
 
@@ -55,7 +52,7 @@ Resources:
   ReadScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub "${Name}-read-policy"
+      PolicyName: !Sub "${ResourceId}-read"
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref ReadCapacityScalableTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -68,7 +65,7 @@ Resources:
   WriteScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub "${Name}-write-policy"
+      PolicyName: !Sub "${ResourceId}-write"
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref WriteCapacityScalableTarget
       TargetTrackingScalingPolicyConfiguration:
