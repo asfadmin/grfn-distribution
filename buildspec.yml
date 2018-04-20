@@ -11,7 +11,7 @@ environment_variables:
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "PROD"
-    SHA1: "4303d95"
+    SHA1: "a6d126b"
 
 phases:
   pre_build:
@@ -29,6 +29,7 @@ phases:
       - pip install -r glacier-restore/requirements.txt -t glacier-restore/src/
       - pip install -r glacier-poll/requirements.txt -t glacier-poll/src/
       - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
+      - pip install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
       - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
