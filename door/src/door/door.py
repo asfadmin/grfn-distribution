@@ -52,7 +52,7 @@ def object_status(object_key):
             abort(500)
 
     response = app.response_class(
-        response=json.dumps(response_payload),
+        response=json.dumps(response_payload,indent=4),
         status=200,
         mimetype='application/json'
     )
@@ -87,7 +87,7 @@ def get_temporary_credentials():
     if 'errorType' in response_payload:
         abort(500)
     response = app.response_class(
-        response=json.dumps(response_payload),
+        response=json.dumps(response_payload, indent=4),
         status=200,
         mimetype='application/json'
     )
