@@ -104,7 +104,7 @@ Resources:
               "temporary_credentials": {
                 "credentials": {
                     "role_arn": "${AccessRole.Arn}",
-                    "duration_seconds": 900
+                    "duration_seconds": 43200
                 },
                 "policy": {
                     "role_name": "${AccessRole}",
