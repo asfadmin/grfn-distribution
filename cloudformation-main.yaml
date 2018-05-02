@@ -146,6 +146,7 @@ Resources:
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         Hostname: !Ref Hostname
+        HelpURL: !Ref HelpURL
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-notifications/cloudformation.yaml
