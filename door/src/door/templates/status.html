@@ -30,8 +30,10 @@ Your requested data are being fetched from long-term storage.  Links will appear
 
 <p />
 This page will refresh every minute.
+
 <p />
-<a href="{{ url_for('show_help_url') }}">Help</a> with GRFN products
+
+<a href="https://{{ data.helpurl }}/">Help</a> with GRFN Products.
 <p />  
 {% if data.subscribed_to_emails %}
 <a href="{{ url_for('show_user_profile') }}">Unsubscribe</a> from email notifications
