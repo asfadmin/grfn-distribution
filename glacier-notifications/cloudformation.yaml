@@ -24,6 +24,9 @@ Parameters:
 
   Hostname:
     Type: String
+   
+  HelpURL:
+    Type: String
 
   SenderEmailAddress:
     Type: String
