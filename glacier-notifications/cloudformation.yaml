@@ -24,6 +24,9 @@ Parameters:
 
   Hostname:
     Type: String
+   
+  HelpURL:
+    Type: String
 
   SenderEmailAddress:
     Type: String
@@ -138,6 +141,7 @@ Resources:
                   "users_table": "${UsersTable}",
                   "objects_table": "${ObjectsTable}",
                   "hostname": "${Hostname}",
+                  "helpurl": "${HelpURL}",
                   "retention_days": ${RetentionDays},
                   "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
                   "sender": {

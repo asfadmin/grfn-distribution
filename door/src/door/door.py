@@ -28,6 +28,7 @@ def status():
         'retention_days': app.config['retention_days'],
         'subscribed_to_emails': user['subscribed_to_emails'],
         'objects': get_objects_for_user(app.config['status_lambda'], user['user_id']),
+        'helpurl': app.config['helpurl'],
     }
     return render_template('status.html', data=data), 200
 
