@@ -185,5 +185,6 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
+        HelpURL: !Ref HelpURL
         RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
