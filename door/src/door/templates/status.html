@@ -30,7 +30,11 @@ Your requested data are being fetched from long-term storage.  Links will appear
 
 <p />
 This page will refresh every minute.
+
 <p />
+
+<a href="{{ data.helpurl }}">Help</a> with Sentinel-1 Interferograms
+<p />  
 {% if data.subscribed_to_emails %}
 <a href="{{ url_for('show_user_profile') }}">Unsubscribe</a> from email notifications
 {% else %}

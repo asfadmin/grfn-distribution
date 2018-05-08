@@ -61,6 +61,9 @@ Parameters:
 
   Hostname:
     Type: String
+  
+  HelpURL:
+    Type: String
 
   Ami:
     Type: AWS::EC2::Image::Id
@@ -194,6 +197,7 @@ Resources:
               "bucket": "${Bucket}",
               "expire_time_in_seconds": 15,
               "users_table": "${UsersTable}",
+              "helpurl": "${HelpURL}",
               "availability_lambda": "${AvailabilityLambda}",
               "status_lambda": "${StatusLambda}",
               "object_status_lambda": "${ObjectStatusLambda}",

@@ -123,7 +123,8 @@ def process_sqs_message(sqs_message, config):
         email_subject = 'SAR Products Requested {0} UTC'
         template = 'acknowledgement.html'
         data = {
-            'hostname': config['hostname']
+            'hostname': config['hostname'],
+            'helpurl': config['helpurl'],
         }
     elif payload['type'] == 'availability':
         email_subject = 'SAR Products Available {0} UTC'
@@ -132,6 +133,7 @@ def process_sqs_message(sqs_message, config):
             'hostname': config['hostname'],
             'objects': get_objects_for_bundle(payload['bundle_id'], config['objects_table']),
             'retention_days': config['retention_days'],
+            'helpurl': config['helpurl'],
         }
 
     email_body = render(template, data)

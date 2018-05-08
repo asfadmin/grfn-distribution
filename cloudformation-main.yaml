@@ -46,6 +46,9 @@ Parameters:
 
   Hostname:
     Type: String
+    
+  HelpURL:
+    Type: String
 
   RetentionDays:
     Type: Number
@@ -143,6 +146,7 @@ Resources:
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         Hostname: !Ref Hostname
+        HelpURL: !Ref HelpURL
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
         RetentionDays: !Ref RetentionDays
       TemplateURL: glacier-notifications/cloudformation.yaml
@@ -185,5 +189,6 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
+        HelpURL: !Ref HelpURL
         RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
