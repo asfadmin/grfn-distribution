@@ -45,6 +45,9 @@ Parameters:
   Hostname:
     Type: String
 
+  HelpURL:
+    Type: String
+    
   AcknowledgementEmailIntervalInMinutes:
     Type: Number
     Default: 720
@@ -91,5 +94,6 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
+        HelpURL: !Ref HelpURL
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
       TemplateURL: cloudformation-main.yaml
