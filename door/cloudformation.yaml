@@ -68,7 +68,7 @@ Parameters:
   Ami:
     Type: AWS::EC2::Image::Id
     Description: Runtime AMI
-    Default: ami-5e414e24
+    Default: ami-5253c32d
 
   RetentionDays:
     Type: Number
