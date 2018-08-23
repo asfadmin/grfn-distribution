@@ -110,7 +110,7 @@ Resources:
       AssociatePublicIpAddress: true
       IamInstanceProfile: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/ecsInstanceRole"
       ImageId: !Ref Ami
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       SecurityGroups:
       - !Ref InstanceSecurityGroup
       UserData:
