@@ -48,4 +48,4 @@ Resources:
           - !Ref AWS::AccountId
         Logging:
           Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
-          Prefix: !Sub "cloudfront-access/${Bucket}/"
+          Prefix: !Sub "cloudfront-access/${Name}/"
