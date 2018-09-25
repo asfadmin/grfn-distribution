@@ -28,6 +28,9 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
+  LogBucket:
+    Type: String
+
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -68,6 +71,9 @@ Outputs:
 
   UrsRedirectUri:
     Value: !GetAtt DoorStack.Outputs.UrsRedirectUri
+
+  CloudFrontCanonicalUserId:
+    Value: !GetAtt CloudFrontStack.Outputs.CanonicalUserId
 
 Resources:
 
@@ -192,3 +198,12 @@ Resources:
         HelpURL: !Ref HelpURL
         RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
+
+  CloudFrontStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Ref Name
+        Bucket: !Ref PrivateBucket
+        LogBucket: !Ref LogBucket
+      TemplateURL: cloudfront/cloudformation.yaml
