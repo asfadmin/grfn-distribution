@@ -61,6 +61,12 @@ Parameters:
     Type: Number
     Default: 720
 
+  CloudFrontKeyPairId:
+    Type: String
+
+  CloudFrontPrivateKey:
+    Type: String
+
 Outputs:
 
   AppUrl:
@@ -183,7 +189,9 @@ Resources:
         LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
-        Bucket: !Ref PrivateBucket
+        CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
+        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
+        CloudFrontPrivateKey: !Ref CloudFrontPrivateKey
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
