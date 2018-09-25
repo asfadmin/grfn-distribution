@@ -40,7 +40,7 @@ Resources:
         PriceClass: PriceClass_100
         Origins:
         - Id: !Ref Bucket
-          DomainName: !Sub "${Bucket}.s3.amazonaws.com"
+          DomainName: !Sub "${Bucket}.s3.${AWS::Region}.amazonaws.com"
           S3OriginConfig:
             OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginAccessIdentity}"
         DefaultCacheBehavior:
@@ -51,5 +51,5 @@ Resources:
           TrustedSigners:
           - !Ref AWS::AccountId
         Logging:
-          Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
+          Bucket: !Sub "${LogBucket}.s3.${AWS::Region}.amazonaws.com"
           Prefix: !Sub "${LogPrefix}${Name}/"
