@@ -55,6 +55,12 @@ Parameters:
     Type: Number
     Default: 720
 
+  CloudFrontKeyPairId:
+    Type: String
+
+  CloudFrontPrivateKey:
+    Type: String
+
   Maturity:
     Description: Value for MATURITY tag to be applied to all taggable resources
     Type: String
@@ -103,4 +109,6 @@ Resources:
         Hostname: !Ref Hostname
         HelpURL: !Ref HelpURL
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
+        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
+        CloudFrontPrivateKey: !Ref CloudFrontPrivateKey
       TemplateURL: cloudformation-main.yaml

@@ -1,12 +1,14 @@
 import os
 import json
+import base64
 from datetime import datetime
+from time import time
 import boto3
 from flask import Flask, redirect, render_template, request, abort, url_for
+from M2Crypto import EVP
 
 
 app = Flask(__name__)
-s3 = boto3.client('s3')
 
 
 @app.before_first_request
@@ -136,8 +138,7 @@ def download_redirect(object_key):
             abort(500)
 
     if response_payload['available']:
-        signed_url = get_link(app.config['bucket'], object_key, app.config['expire_time_in_seconds'])
-        signed_url = signed_url + '&userid=' + get_environ_value('URS_USERID')
+        signed_url = get_signed_url(object_key, get_environ_value('URS_USERID'), app.config['cloudfront'])
         return redirect(signed_url)
 
     if get_environ_value('CLI_USER_AGENT'):
@@ -184,18 +185,6 @@ def get_environ_value(key):
     return None
 
 
-def get_link(bucket_name, object_key, expire_time_in_seconds):
-    url = s3.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': bucket_name,
-            'Key': object_key,
-        },
-        ExpiresIn=expire_time_in_seconds,
-    )
-    return url
-
-
 def get_objects_for_user(status_lambda, user_id):
     payload = {'user_id': user_id}
     lamb = boto3.client('lambda')
@@ -205,3 +194,40 @@ def get_objects_for_user(status_lambda, user_id):
     )
     objects = json.loads(response['Payload'].read())
     return objects
+
+
+def get_signed_url(object_key, user_id, config):
+    base_url = 'https://{0}/{1}?userid={2}'.format(config['domain_name'], object_key, user_id)
+    expires = int(time()) + config['expire_time_in_seconds']
+    policy = create_policy(base_url, expires)
+    signature = get_signed_signature_for_string(policy, str(config['private_key']))
+    signed_url = create_url(base_url, expires, config['key_pair_id'], signature);
+    return signed_url
+
+
+def aws_url_base64_encode(msg):
+    msg_base64 = base64.b64encode(msg)
+    msg_base64 = msg_base64.replace('+', '-')
+    msg_base64 = msg_base64.replace('=', '_')
+    msg_base64 = msg_base64.replace('/', '~')
+    return msg_base64
+
+
+def get_signed_signature_for_string(message, private_key_string):
+    key = EVP.load_key_string(private_key_string)
+    key.reset_context(md='sha1')
+    key.sign_init()
+    key.sign_update(str(message))
+    signature = key.sign_final()
+    signature = aws_url_base64_encode(signature)
+    return signature
+
+
+def create_policy(url, expires):
+    policy = '{"Statement":[{"Resource":"%(url)s","Condition":{"DateLessThan":{"AWS:EpochTime":%(expires)s}}}]}' % {'url':url, 'expires':expires}
+    return policy
+
+
+def create_url(base_url, expires, key_pair_id, signature):
+    signed_url = '{0}&Expires={1}&Key-Pair-Id={2}&Signature={3}'.format(base_url, expires, key_pair_id, signature)
+    return signed_url
