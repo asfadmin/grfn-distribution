@@ -225,7 +225,7 @@ def get_signed_signature_for_string(message, private_key_string):
 
 def create_policy(url, expires):
     policy = '{"Statement":[{"Resource":"%(url)s","Condition":{"DateLessThan":{"AWS:EpochTime":%(expires)s}}}]}' % {'url':url, 'expires':expires}
-    return canned
+    return policy
 
 
 def create_url(base_url, expires, key_pair_id, signature):
