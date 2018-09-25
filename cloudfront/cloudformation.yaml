@@ -11,6 +11,10 @@ Parameters:
   LogBucket:
     Type: String
 
+  LogPrefix:
+    Type: String
+    Default: cloudfront-access/
+
 Outputs:
 
   DomainName:
@@ -48,4 +52,4 @@ Resources:
           - !Ref AWS::AccountId
         Logging:
           Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
-          Prefix: !Sub "cloudfront-access/${Name}/"
+          Prefix: !Sub "${LogPrefix}${Name}/"
