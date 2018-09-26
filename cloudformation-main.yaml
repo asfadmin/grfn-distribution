@@ -28,6 +28,9 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
+  LogBucket:
+    Type: String
+
   DoorContainerImage:
     Description: URL for runtime docker container for door application (repository-url/image:tag)
     Type: String
@@ -57,6 +60,12 @@ Parameters:
   AcknowledgementEmailIntervalInMinutes:
     Type: Number
     Default: 720
+
+  CloudFrontKeyPairId:
+    Type: String
+
+  PrivateKeySecretName:
+    Type: String
 
 Outputs:
 
@@ -177,7 +186,9 @@ Resources:
         LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
-        Bucket: !Ref PrivateBucket
+        CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
+        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
+        PrivateKeySecretName: !Ref PrivateKeySecretName
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
@@ -192,3 +203,21 @@ Resources:
         HelpURL: !Ref HelpURL
         RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
+
+  CloudFrontStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Ref Name
+        Bucket: !Ref PrivateBucket
+        LogBucket: !Ref LogBucket
+      TemplateURL: cloudfront/cloudformation.yaml
+
+  CloudFrontAclStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${Name}-cloudfront-acl"
+        Bucket: !Ref PrivateBucket
+        CanonicalUserId: !GetAtt CloudFrontStack.Outputs.CanonicalUserId
+      TemplateURL: cloudfront-acl/cloudformation.yaml
