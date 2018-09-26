@@ -81,9 +81,6 @@ Outputs:
   UrsRedirectUri:
     Value: !GetAtt MainStack.Outputs.UrsRedirectUri
 
-  CloudFrontCanonicalUserId:
-    Value: !GetAtt MainStack.Outputs.CloudFrontCanonicalUserId
-
 Resources:
 
   MainStack:
