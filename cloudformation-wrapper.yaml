@@ -58,7 +58,7 @@ Parameters:
   CloudFrontKeyPairId:
     Type: String
 
-  CloudFrontPrivateKey:
+  PrivateKeySecretName:
     Type: String
 
   Maturity:
@@ -110,5 +110,5 @@ Resources:
         HelpURL: !Ref HelpURL
         AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
         CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
-        CloudFrontPrivateKey: !Ref CloudFrontPrivateKey
+        PrivateKeySecretName: !Ref PrivateKeySecretName
       TemplateURL: cloudformation-main.yaml

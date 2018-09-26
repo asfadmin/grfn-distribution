@@ -30,7 +30,7 @@ Parameters:
   CloudFrontKeyPairId:
     Type: String
 
-  CloudFrontPrivateKey:
+  PrivateKeySecretName:
     Type: String
 
   UsersTable:
@@ -161,6 +161,9 @@ Resources:
             - dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
           - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
+          - Effect: Allow
             Action: lambda:InvokeFunction
             Resource:
             - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
@@ -196,9 +199,9 @@ Resources:
           Value: !Sub |-
             {
               "aws_region": "${AWS::Region}",
+              "private_key_secret_name": "${PrivateKeySecretName}",
               "cloudfront": {
                 "domain_name": "${CloudFrontDomainName}",
-                "private_key": "${CloudFrontPrivateKey}",
                 "key_pair_id": "${CloudFrontKeyPairId}",
                 "expire_time_in_seconds": 15
               },

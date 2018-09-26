@@ -64,7 +64,7 @@ Parameters:
   CloudFrontKeyPairId:
     Type: String
 
-  CloudFrontPrivateKey:
+  PrivateKeySecretName:
     Type: String
 
 Outputs:
@@ -191,7 +191,7 @@ Resources:
         SubnetId: !Join [",", !Ref SubnetId]
         CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
         CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
-        CloudFrontPrivateKey: !Ref CloudFrontPrivateKey
+        PrivateKeySecretName: !Ref PrivateKeySecretName
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
