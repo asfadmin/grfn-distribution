@@ -16,6 +16,8 @@ def init_app():
     config = json.loads(get_environ_value('DOOR_CONFIG'))
     app.config.update(dict(config))
     boto3.setup_default_session(region_name=config['aws_region'])
+    private_key = get_secret(app.config['private_key_secret_name'])['private_key']
+    app.config['cloudfront']['private_key'] = str(private_key)
 
 
 @app.route('/')
@@ -200,7 +202,7 @@ def get_signed_url(object_key, user_id, config):
     base_url = 'https://{0}/{1}?userid={2}'.format(config['domain_name'], object_key, user_id)
     expires = int(time()) + config['expire_time_in_seconds']
     policy = create_policy(base_url, expires)
-    signature = get_signed_signature_for_string(policy, str(config['private_key']))
+    signature = get_signed_signature_for_string(policy, config['private_key'])
     signed_url = create_url(base_url, expires, config['key_pair_id'], signature);
     return signed_url
 
@@ -221,6 +223,13 @@ def get_signed_signature_for_string(message, private_key_string):
     signature = key.sign_final()
     signature = aws_url_base64_encode(signature)
     return signature
+
+
+def get_secret(secret_name):
+    sm = boto3.client('secretsmanager')
+    response = sm.get_secret_value(SecretId=secret_name)
+    secret = json.loads(response['SecretString'])
+    return secret
 
 
 def create_policy(url, expires):
