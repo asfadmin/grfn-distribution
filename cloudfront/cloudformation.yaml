@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  Name:
+    Type: String
+
+  Bucket:
+    Type: String
+
+  LogBucket:
+    Type: String
+
+  LogPrefix:
+    Type: String
+    Default: cloudfront-access/
+
+Outputs:
+
+  DomainName:
+    Value: !GetAtt Distribution.DomainName
+
+  CanonicalUserId:
+    Value: !GetAtt OriginAccessIdentity.S3CanonicalUserId
+
+Resources:
+
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref Name
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Ref Name
+        Enabled: True
+        PriceClass: PriceClass_100
+        Origins:
+        - Id: !Ref Bucket
+          DomainName: !Sub "${Bucket}.s3.amazonaws.com"
+          S3OriginConfig:
+            OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginAccessIdentity}"
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: False
+          TargetOriginId: !Ref Bucket
+          ViewerProtocolPolicy: redirect-to-https
+          TrustedSigners:
+          - !Ref AWS::AccountId
+        Logging:
+          Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
+          Prefix: !Sub "${LogPrefix}${Name}/"

@@ -24,8 +24,13 @@ Parameters:
     Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
     Type: List<AWS::EC2::Subnet::Id>
 
-  Bucket:
-    Description: Name of S3 bucket in which zipped output products will be archived
+  CloudFrontDomainName:
+    Type: String
+
+  CloudFrontKeyPairId:
+    Type: String
+
+  PrivateKeySecretName:
     Type: String
 
   UsersTable:
@@ -151,13 +156,13 @@ Resources:
           Version: 2012-10-17
           Statement:
           - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
-          - Effect: Allow
             Action:
             - dynamodb:GetItem
             - dynamodb:UpdateItem
             Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
           - Effect: Allow
             Action: lambda:InvokeFunction
             Resource:
@@ -194,8 +199,12 @@ Resources:
           Value: !Sub |-
             {
               "aws_region": "${AWS::Region}",
-              "bucket": "${Bucket}",
-              "expire_time_in_seconds": 15,
+              "private_key_secret_name": "${PrivateKeySecretName}",
+              "cloudfront": {
+                "domain_name": "${CloudFrontDomainName}",
+                "key_pair_id": "${CloudFrontKeyPairId}",
+                "expire_time_in_seconds": 15
+              },
               "users_table": "${UsersTable}",
               "helpurl": "${HelpURL}",
               "availability_lambda": "${AvailabilityLambda}",
