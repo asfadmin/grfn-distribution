@@ -50,6 +50,14 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           TrustedSigners:
           - !Ref AWS::AccountId
+        Restrictions:
+          GeoRestriction:
+            Type: blacklist
+            Locations:
+            - CU
+            - IR
+            - KP
+            - SY
         Logging:
           Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
           Prefix: !Sub "${LogPrefix}${Name}/"
