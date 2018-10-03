@@ -52,7 +52,7 @@ Resources:
           - !Ref AWS::AccountId
         Restrictions:
           GeoRestriction:
-            Type: blacklist
+            RestrictionType: blacklist
             Locations:
             - CU
             - IR
