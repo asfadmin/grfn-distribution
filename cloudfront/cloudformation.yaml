@@ -58,6 +58,7 @@ Resources:
             - IR
             - KP
             - SY
+            - US
         Logging:
           Bucket: !Sub "${LogBucket}.s3.amazonaws.com"
           Prefix: !Sub "${LogPrefix}${Name}/"
