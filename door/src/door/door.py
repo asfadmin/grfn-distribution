@@ -143,10 +143,9 @@ def download_redirect(object_key):
         signed_url = get_signed_url(object_key, get_environ_value('URS_USERID'), app.config['cloudfront'])
         return redirect(signed_url)
 
-    if get_environ_value('CLI_USER_AGENT'):
-        return render_template('cli_user_agent_response.html'), 202
-
-    return redirect(url_for('status'))
+    if get_environ_value('BROWSER_USER_AGENT'):
+        return redirect(url_for('status'))
+    return render_template('cli_user_agent_response.html'), 202
 
 
 def update_user(table, user):
@@ -203,7 +202,7 @@ def get_signed_url(object_key, user_id, config):
     expires = int(time()) + config['expire_time_in_seconds']
     policy = create_policy(base_url, expires)
     signature = get_signed_signature_for_string(policy, config['private_key'])
-    signed_url = create_url(base_url, expires, config['key_pair_id'], signature);
+    signed_url = create_url(base_url, expires, config['key_pair_id'], signature)
     return signed_url
 
 
