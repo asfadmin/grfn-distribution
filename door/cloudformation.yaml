@@ -331,8 +331,11 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref TargetGroup
+      - Type: fixed-response
+        FixedResponseConfig:
+          StatusCode: 503
+          ContentType: text/plain
+          MessageBody: Sentinel-1 interferograms are currently unavailable.
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
