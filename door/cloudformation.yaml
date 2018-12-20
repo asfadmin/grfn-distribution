@@ -322,7 +322,7 @@ Resources:
         RedirectConfig:
           StatusCode: HTTP_301
           Protocol: HTTPS
-          Post: 443
+          Port: 443
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
