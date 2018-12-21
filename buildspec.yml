@@ -6,12 +6,10 @@ version: 0.1
 
 environment_variables:
   plaintext:
-    BUCKET: "grfn-software"
-    PREFIX: "lambda"
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "PROD"
-    SHA1: "9ed7b01"
+    SHA1: "371b1de"
 
 phases:
   pre_build:
