@@ -332,10 +332,14 @@ Resources:
     Properties:
       DefaultActions:
       - Type: fixed-response
+        Order: 1
         FixedResponseConfig:
           StatusCode: 503
           ContentType: text/plain
           MessageBody: Due to the current government shutdown, some data from the Sentinel-1 and GRFN product lines at the Alaska Satellite Facility will be temporarily unavailable. We apologize for the inconvenience this disruption of service may cause to our customers.
+      - Type: forward
+        Order: 2
+        TargetGroupArn: !Ref TargetGroup
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
