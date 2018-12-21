@@ -271,10 +271,10 @@ Resources:
       DeploymentConfiguration:
         MinimumHealthyPercent: 0
         MaximumPercent: 100
-      LoadBalancers:
-      - TargetGroupArn: !Ref TargetGroup
-        ContainerName: !Ref Name
-        ContainerPort: 80
+      #LoadBalancers:
+      #- TargetGroupArn: !Ref TargetGroup
+      #  ContainerName: !Ref Name
+      #  ContainerPort: 80
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -332,14 +332,12 @@ Resources:
     Properties:
       DefaultActions:
       - Type: fixed-response
-        Order: 1
         FixedResponseConfig:
           StatusCode: 503
           ContentType: text/plain
           MessageBody: Due to the current government shutdown, some data from the Sentinel-1 and GRFN product lines at the Alaska Satellite Facility will be temporarily unavailable. We apologize for the inconvenience this disruption of service may cause to our customers.
-      - Type: forward
-        Order: 2
-        TargetGroupArn: !Ref TargetGroup
+      #- Type: forward
+      #  TargetGroupArn: !Ref TargetGroup
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
