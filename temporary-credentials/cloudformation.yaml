@@ -90,12 +90,12 @@ Resources:
           CONFIG: !Sub |-
             {
               "credentials": {
-                  "role_arn": "${AccessRole.Arn}",
-                  "duration_seconds": 3600
+                "role_arn": "${AccessRole.Arn}",
+                "duration_seconds": 3600
               },
               "policy": {
-                  "role_name": "${AccessRole}",
-                  "policy_name": "policy"
+                "role_name": "${AccessRole}",
+                "policy_name": "policy"
               }
             }
       Handler: main.lambda_handler
