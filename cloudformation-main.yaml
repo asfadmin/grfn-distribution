@@ -114,7 +114,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-upkeep"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
