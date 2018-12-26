@@ -159,7 +159,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-object-status"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
       TemplateURL: object-status/cloudformation.yaml
 

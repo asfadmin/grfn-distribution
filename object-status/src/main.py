@@ -7,14 +7,9 @@ import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 s3 = boto3.resource('s3')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def get_expiration_date(restore_string):
@@ -45,6 +40,5 @@ def get_object_status(bucket, key):
 
 
 def lambda_handler(event, context):
-    config = setup()
     response = get_object_status(config['bucket'], event['object_key'])
     return response
