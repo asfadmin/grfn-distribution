@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   Bucket:
     Type: String
 
@@ -93,15 +82,12 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "request": {
-                "objects_table": "${ObjectsTable}",
-                "object_status_lambda": "${ObjectStatusLambda}",
-                "restore": {
-                  "bucket": "${Bucket}",
-                  "default_tier": "Standard",
-                  "retention_days": ${RetentionDays}
-                }
+              "objects_table": "${ObjectsTable}",
+              "object_status_lambda": "${ObjectStatusLambda}",
+              "restore": {
+                "bucket": "${Bucket}",
+                "default_tier": "Standard",
+                "retention_days": ${RetentionDays}
               }
             }
       Handler: main.lambda_handler

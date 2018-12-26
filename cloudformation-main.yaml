@@ -128,7 +128,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-restore"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
