@@ -104,7 +104,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-status"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
