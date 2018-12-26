@@ -1,22 +1,17 @@
 import json
 from datetime import datetime
-from os import environ
+from os import getenv
 from logging import getLogger
 from uuid import uuid4
 import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
 lamb = boto3.client('lambda')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def get_open_bundle_for_user(user_id, table):
@@ -113,6 +108,5 @@ def process_availability(event, config):
 
 
 def lambda_handler(event, context):
-    config = setup()
-    response = process_availability(event, config['availability'])
+    response = process_availability(event, config)
     return response
