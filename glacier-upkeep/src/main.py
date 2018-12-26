@@ -1,5 +1,5 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 from datetime import datetime
 from collections import defaultdict
@@ -7,16 +7,11 @@ import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 dynamodb = boto3.client('dynamodb')
 lamb = boto3.client('lambda')
 sqs = boto3.client('sqs')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def get_objects_by_request_status(request_status, table):
@@ -149,5 +144,4 @@ def upkeep(config):
 
 
 def lambda_handler(event, context):
-    config = setup()
-    upkeep(config['upkeep'])
+    upkeep(config)

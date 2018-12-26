@@ -1,22 +1,15 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 s3 = boto3.client('s3')
 
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
-
-
 def lambda_handler(event, context):
-    config = setup()
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']

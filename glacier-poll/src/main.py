@@ -1,19 +1,14 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 dynamodb = boto3.client('dynamodb')
 lamb = boto3.client('lambda')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def update_object(request, expiration_date, table):
@@ -50,6 +45,5 @@ def poll_object(request, config):
 
 
 def lambda_handler(event, context):
-    config = setup()
     for request in event:
-        poll_object(request, config['poll_object'])
+        poll_object(request, config)

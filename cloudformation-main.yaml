@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   VpcId:
     Description: VPC Id in which to launch EC2 instances for ingest activities
     Type: AWS::EC2::VPC::Id
@@ -92,7 +81,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-availability"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
@@ -105,7 +93,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-status"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
@@ -116,7 +103,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-upkeep"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
@@ -129,7 +115,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-restore"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         RetentionDays: !Ref RetentionDays
@@ -141,7 +126,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-poll"
-        LogLevel: !Ref LogLevel
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
       TemplateURL: glacier-poll/cloudformation.yaml
@@ -151,7 +135,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-notifications"
-        LogLevel: !Ref LogLevel
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         Hostname: !Ref Hostname
@@ -165,7 +148,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-object-status"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
       TemplateURL: object-status/cloudformation.yaml
 
@@ -174,7 +156,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-temporary-credentials"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
       TemplateURL: temporary-credentials/cloudformation.yaml
 
@@ -183,7 +164,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-door"
-        LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName

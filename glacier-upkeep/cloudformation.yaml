@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   BundlesTable:
     Type: String
 
@@ -101,15 +90,12 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "upkeep": {
-                "objects_table": "${ObjectsTable}",
-                "bundles_table": "${BundlesTable}",
-                "email_queue_name": "${EmailQueueName}",
-                "restore_object_lambda": "${RestoreObjectLambda}",
-                "poll_object_lambda": "${PollObjectLambda}",
-                "max_expedited_requests_per_bundle": 10
-              }
+              "objects_table": "${ObjectsTable}",
+              "bundles_table": "${BundlesTable}",
+              "email_queue_name": "${EmailQueueName}",
+              "restore_object_lambda": "${RestoreObjectLambda}",
+              "poll_object_lambda": "${PollObjectLambda}",
+              "max_expedited_requests_per_bundle": 10
             }
       Handler: main.lambda_handler
       MemorySize: 128
