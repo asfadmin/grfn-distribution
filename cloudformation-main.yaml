@@ -92,7 +92,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-availability"
-        LogLevel: !Ref LogLevel
         BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
@@ -141,7 +140,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-poll"
-        LogLevel: !Ref LogLevel
         ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
       TemplateURL: glacier-poll/cloudformation.yaml
@@ -151,7 +149,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-glacier-notifications"
-        LogLevel: !Ref LogLevel
         UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
         ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
         Hostname: !Ref Hostname
