@@ -167,7 +167,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${Name}-temporary-credentials"
-        LogLevel: !Ref LogLevel
         Bucket: !Ref PrivateBucket
       TemplateURL: temporary-credentials/cloudformation.yaml
 
