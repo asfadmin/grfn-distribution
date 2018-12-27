@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   UsersTable:
     Type: String
 
@@ -131,23 +120,20 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "notifications": {
-                "email_queue_url": "${EmailQueue}",
-                "wait_time_in_seconds": 10,
-                "max_messages_per_receive": 10,
-                "buffer_time_in_millis": 20000,
-                "email_content": {
-                  "users_table": "${UsersTable}",
-                  "objects_table": "${ObjectsTable}",
-                  "hostname": "${Hostname}",
-                  "helpurl": "${HelpURL}",
-                  "retention_days": ${RetentionDays},
-                  "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
-                  "sender": {
-                    "from_description": "${SenderDescription}",
-                    "from_email": "${SenderEmailAddress}"
-                  }
+              "email_queue_url": "${EmailQueue}",
+              "wait_time_in_seconds": 10,
+              "max_messages_per_receive": 10,
+              "buffer_time_in_millis": 20000,
+              "email_content": {
+                "users_table": "${UsersTable}",
+                "objects_table": "${ObjectsTable}",
+                "hostname": "${Hostname}",
+                "helpurl": "${HelpURL}",
+                "retention_days": ${RetentionDays},
+                "message_interval_in_minutes": ${AcknowledgementEmailIntervalInMinutes},
+                "sender": {
+                  "from_description": "${SenderDescription}",
+                  "from_email": "${SenderEmailAddress}"
                 }
               }
             }

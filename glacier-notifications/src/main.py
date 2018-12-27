@@ -1,5 +1,5 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 from operator import itemgetter
 from datetime import datetime, timedelta, date
@@ -8,17 +8,12 @@ from jinja2 import Environment, FileSystemLoader
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 ses = boto3.client('ses')
 sqs = boto3.resource('sqs')
 dynamodb = boto3.client('dynamodb')
 lamb = boto3.client('lambda')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def render(template_file, data):
@@ -163,5 +158,4 @@ def process_notifications(config, get_remaining_time_in_millis_fcn):
 
 
 def lambda_handler(event, context):
-    config = setup()
-    process_notifications(config['notifications'], context.get_remaining_time_in_millis)
+    process_notifications(config, context.get_remaining_time_in_millis)

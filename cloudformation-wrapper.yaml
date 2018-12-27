@@ -2,17 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   VpcId:
     Description: VPC Id in which to launch EC2 instances for ingest activities
     Type: AWS::EC2::VPC::Id
@@ -93,7 +82,6 @@ Resources:
         Value: GRFN-DISTRIBUTION
       Parameters:
         Name: !Ref AWS::StackName
-        LogLevel: !Ref LogLevel
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         PrivateBucket: !Ref PrivateBucket
