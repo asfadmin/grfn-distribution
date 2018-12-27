@@ -1,5 +1,5 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 from datetime import datetime
 from datetime import timedelta
@@ -8,15 +8,10 @@ import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 s3 = boto3.resource('s3')
 dynamodb = boto3.client('dynamodb')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def get_bundles_for_user(user_id, cutoff_date, table):
@@ -69,6 +64,5 @@ def get_status(user_id, config):
 
 
 def lambda_handler(event, context):
-    config = setup()
-    status = get_status(event['user_id'], config['status'])
+    status = get_status(event['user_id'], config)
     return status

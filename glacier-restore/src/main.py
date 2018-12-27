@@ -1,21 +1,16 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 import boto3
 from botocore.exceptions import ClientError
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
 lamb = boto3.client('lambda')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def update_object(bundle_id, object_key, object_status, table):
@@ -73,6 +68,5 @@ def process_request(request, config):
 
 
 def lambda_handler(event, context):
-    config = setup()
     for request in event:
-        process_request(request, config['request'])
+        process_request(request, config)

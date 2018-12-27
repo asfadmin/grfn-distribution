@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   Bucket:
     Type: String
 
@@ -100,16 +89,13 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "temporary_credentials": {
-                "credentials": {
-                    "role_arn": "${AccessRole.Arn}",
-                    "duration_seconds": 3600
-                },
-                "policy": {
-                    "role_name": "${AccessRole}",
-                    "policy_name": "policy"
-                }
+              "credentials": {
+                "role_arn": "${AccessRole.Arn}",
+                "duration_seconds": 3600
+              },
+              "policy": {
+                "role_name": "${AccessRole}",
+                "policy_name": "policy"
               }
             }
       Handler: main.lambda_handler
