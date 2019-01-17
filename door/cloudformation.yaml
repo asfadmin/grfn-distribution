@@ -135,7 +135,7 @@ Resources:
           MessageBody: |-
             Due to the current government shutdown, most data from the Sentinel-1 product lines at ASF will be temporarily unavailable. ASF DAAC may not be able to respond to inquiries until appropriations are enacted.
 
-            We apologize for the inconvenience this disruption of service may cause to our customers.
+            We apologize for the inconvenience this disruption of service may cause to our customers. If your projects are being impacted by this outage, please give us feedback on how it is impacting you at uso@asf.alaska.edu.
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
