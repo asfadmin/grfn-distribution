@@ -81,11 +81,203 @@ Outputs:
 
 Resources:
 
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref Name
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${Name}-instance"
+      GroupDescription: !Sub "Security group for ${Name} servers"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/ecsInstanceRole"
+      ImageId: !Ref Ami
+      InstanceType: t3.micro
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |-
+          #!/bin/bash -xe
+          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
+          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
+      InstanceMonitoring: false
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetId
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 2
+      Tags:
+      - Key: Name
+        Value: !Ref Name
+        PropagateAtLaunch: true
+
+  TaskIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref Name
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - ecs-tasks.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource:
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
+            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
+
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Ref Name
       RetentionInDays: 30
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      TaskRoleArn: !Ref TaskIamRole
+      ContainerDefinitions:
+      - Name: !Ref Name
+        Image: !Ref DoorContainerImage
+        MemoryReservation: 256
+        Cpu: 1024
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref LogGroup
+            awslogs-region: !Ref AWS::Region
+        PortMappings:
+        - ContainerPort: 80
+          HostPort: 80
+        Environment:
+        - Name: DOOR_CONFIG
+          Value: !Sub |-
+            {
+              "aws_region": "${AWS::Region}",
+              "private_key_secret_name": "${PrivateKeySecretName}",
+              "cloudfront": {
+                "domain_name": "${CloudFrontDomainName}",
+                "key_pair_id": "${CloudFrontKeyPairId}",
+                "expire_time_in_seconds": 15
+              },
+              "users_table": "${UsersTable}",
+              "helpurl": "${HelpURL}",
+              "availability_lambda": "${AvailabilityLambda}",
+              "status_lambda": "${StatusLambda}",
+              "object_status_lambda": "${ObjectStatusLambda}",
+              "temporary_credentials_lambda": "${TemporaryCredentialsLambda}",
+              "retention_days": ${RetentionDays}
+            }
+        - Name: SERVER_NAME
+          Value: !Ref Hostname
+        - Name: URS_ACCESS_ERROR_URL
+          Value: !Sub "https://${Hostname}/error/failedauth.html"
+        - Name: URS_AUTH_CODE
+          Value: !Ref UrsAuthCode
+        - Name: URS_AUTH_SERVER
+          Value: https://urs.earthdata.nasa.gov
+        - Name: URS_CLIENT_ID
+          Value: !Ref UrsClientId
+        - Name: URS_REDIRECT_URL
+          Value: !Sub "https://${Hostname}/door/oauth"
+
+  GroupScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      Cooldown: 300
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 50
+
+  ServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 2
+      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsAutoscaleRole"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Ref Name
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ServiceScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 50
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+    - HttpListener
+    - HttpsListener
+    Properties:
+      ServiceName: !Ref Name
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+      LoadBalancers:
+      - TargetGroupArn: !Ref TargetGroup
+        ContainerName: !Ref Name
+        ContainerPort: 80
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref Name
+      HealthCheckIntervalSeconds: 120
+      HealthCheckPath: /healthcheck.html
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -128,14 +320,8 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-      - Type: fixed-response
-        FixedResponseConfig:
-          StatusCode: 503
-          ContentType: text/plain
-          MessageBody: |-
-            ASF has a contract with NASA to operate the ASF SAR DAAC. During the government shutdown, most data from the Sentinel-1 product lines at ASF will be temporarily unavailable per direction from NASA. ASF DAAC may not be able to respond to inquiries until appropriations are enacted.
-
-            We apologize for the inconvenience this disruption of service may cause to our customers. If your projects are being impacted by this outage, please give us feedback on how it is impacting you at uso@asf.alaska.edu.
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
