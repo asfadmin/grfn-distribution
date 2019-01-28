@@ -1,19 +1,14 @@
 import json
-from os import environ
+from os import getenv
 from logging import getLogger
 import boto3
 
 
 log = getLogger()
+log.setLevel('INFO')
+config = json.loads(getenv('CONFIG'))
 sts = boto3.client('sts')
 iam = boto3.client('iam')
-
-
-def setup():
-    config = json.loads(environ['CONFIG'])
-    log.setLevel(config['log_level'])
-    log.debug('Config: %s', str(config))
-    return config
 
 
 def get_credentials(user_id, config):
@@ -44,6 +39,5 @@ def get_temporary_credentials(user_id, config):
 
 
 def lambda_handler(event, context):
-    config = setup()
-    response = get_temporary_credentials(event['user_id'], config['temporary_credentials'])
+    response = get_temporary_credentials(event['user_id'], config)
     return response

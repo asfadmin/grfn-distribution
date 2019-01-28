@@ -5,17 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  LogLevel:
-    Description: Application logging level
-    Type: String
-    Default: INFO
-    AllowedValues:
-    - CRITICAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
-
   BundlesTable:
     Type: String
 
@@ -86,12 +75,9 @@ Resources:
         Variables:
           CONFIG: !Sub |-
             {
-              "log_level": "${LogLevel}",
-              "status": {
-                "bundles_table": "${BundlesTable}",
-                "objects_table": "${ObjectsTable}",
-                "retention_days": ${RetentionDays}
-              }
+              "bundles_table": "${BundlesTable}",
+              "objects_table": "${ObjectsTable}",
+              "retention_days": ${RetentionDays}
             }
       Handler: main.lambda_handler
       MemorySize: 128
