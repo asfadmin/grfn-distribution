@@ -31,7 +31,6 @@ phases:
       - pip install -r glacier-poll/requirements.txt -t glacier-poll/src/
       - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
       - pip install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
-      - pip install -r cloudfront-acl/requirements.txt -t cloudfront-acl/src/
       - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
