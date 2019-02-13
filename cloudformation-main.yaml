@@ -192,12 +192,3 @@ Resources:
         Bucket: !Ref PrivateBucket
         LogBucket: !Ref LogBucket
       TemplateURL: cloudfront/cloudformation.yaml
-
-  CloudFrontAclStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-cloudfront-acl"
-        Bucket: !Ref PrivateBucket
-        CanonicalUserId: !GetAtt CloudFrontStack.Outputs.CanonicalUserId
-      TemplateURL: cloudfront-acl/cloudformation.yaml
