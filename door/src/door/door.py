@@ -101,6 +101,8 @@ def get_temporary_credentials():
 
 @app.before_request
 def sync_user():
+    if request.method == 'HEAD':
+        return
     table = app.config['users_table']
     user_id = get_environ_value('URS_USERID')
     email_address = get_environ_value('URS_EMAIL')
