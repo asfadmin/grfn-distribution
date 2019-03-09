@@ -17,8 +17,8 @@ Parameters:
   LogBucket:
     Type: String
 
-  DoorContainerImage:
-    Description: URL for runtime docker container for door application (repository-url/image:tag)
+  DoorContainerRepo:
+    Description: URL for docker container repository for door application (repository-url/image)
     Type: String
 
   UrsClientId:
@@ -74,7 +74,7 @@ Resources:
         CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
         PrivateKeySecretName: !Ref PrivateKeySecretName
         TemporaryCredentialsLambda: !GetAtt TemporaryCredentialsStack.Outputs.LambdaName
-        DoorContainerImage: !Ref DoorContainerImage
+        DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
