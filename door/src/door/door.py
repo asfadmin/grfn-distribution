@@ -3,6 +3,7 @@ import json
 import base64
 from time import time
 import boto3
+from botocore.exceptions import ClientError
 from flask import Flask, redirect, request, abort
 from M2Crypto import EVP
 
