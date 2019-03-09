@@ -8,6 +8,7 @@ from M2Crypto import EVP
 
 
 app = Flask(__name__)
+s3 = boto3.client('s3')
 
 
 @app.before_first_request
@@ -40,6 +41,13 @@ def get_temporary_credentials():
 
 @app.route('/download/<path:object_key>')
 def download_redirect(object_key):
+    try:
+        s3.head_object(Bucket=app.config['bucket'], Key=object_key)
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            abort(404)
+        raise
+
     signed_url = get_signed_url(object_key, get_environ_value('URS_USERID'), app.config['cloudfront'])
     return redirect(signed_url)
 

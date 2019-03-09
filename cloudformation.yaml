@@ -75,6 +75,7 @@ Resources:
         PrivateKeySecretName: !Ref PrivateKeySecretName
         TemporaryCredentialsLambda: !GetAtt TemporaryCredentialsStack.Outputs.LambdaName
         DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
+        PrivateBucket: !Ref PrivateBucket
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn

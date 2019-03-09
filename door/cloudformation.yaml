@@ -6,11 +6,9 @@ Parameters:
     Type: String
 
   VpcId:
-    Description: VPC Id in which to launch EC2 instances for ingest activities
     Type: AWS::EC2::VPC::Id
 
   SubnetId:
-    Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
     Type: List<AWS::EC2::Subnet::Id>
 
   CloudFrontDomainName:
@@ -26,7 +24,9 @@ Parameters:
     Type: String
 
   DoorContainerImage:
-    Description: URL for runtime docker container for door application (repository-url/image:tag)
+    Type: String
+
+  PrivateBucket:
     Type: String
 
   UrsClientId:
@@ -46,7 +46,6 @@ Parameters:
 
   Ami:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Description: Runtime AMI
     Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
 
 Outputs:
@@ -129,6 +128,12 @@ Resources:
             Action: secretsmanager:GetSecretValue
             Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
           - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+          - Effect: Allow
             Action: lambda:InvokeFunction
             Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
 
@@ -161,6 +166,7 @@ Resources:
             {
               "aws_region": "${AWS::Region}",
               "private_key_secret_name": "${PrivateKeySecretName}",
+              "bucket": "${PrivateBucket}",
               "cloudfront": {
                 "domain_name": "${CloudFrontDomainName}",
                 "key_pair_id": "${CloudFrontKeyPairId}",
