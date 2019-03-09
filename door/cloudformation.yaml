@@ -6,11 +6,9 @@ Parameters:
     Type: String
 
   VpcId:
-    Description: VPC Id in which to launch EC2 instances for ingest activities
     Type: AWS::EC2::VPC::Id
 
   SubnetId:
-    Description: List of Subnet Ids in which to launch EC2 instances for ingest activities
     Type: List<AWS::EC2::Subnet::Id>
 
   CloudFrontDomainName:
@@ -22,23 +20,13 @@ Parameters:
   PrivateKeySecretName:
     Type: String
 
-  UsersTable:
-    Type: String
-
-  AvailabilityLambda:
-    Type: String
-
-  StatusLambda:
-    Type: String
-
-  ObjectStatusLambda:
-    Type: String
-
   TemporaryCredentialsLambda:
     Type: String
 
   DoorContainerImage:
-    Description: URL for runtime docker container for door application (repository-url/image:tag)
+    Type: String
+
+  PrivateBucket:
     Type: String
 
   UrsClientId:
@@ -56,17 +44,9 @@ Parameters:
   Hostname:
     Type: String
 
-  HelpURL:
-    Type: String
-
   Ami:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Description: Runtime AMI
     Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
-
-  RetentionDays:
-    Type: Number
-    Default: 7
 
 Outputs:
 
@@ -145,20 +125,17 @@ Resources:
           Version: 2012-10-17
           Statement:
           - Effect: Allow
-            Action:
-            - dynamodb:GetItem
-            - dynamodb:UpdateItem
-            Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTable}"
-          - Effect: Allow
             Action: secretsmanager:GetSecretValue
             Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
           - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+          - Effect: Allow
             Action: lambda:InvokeFunction
-            Resource:
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AvailabilityLambda}"
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StatusLambda}"
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ObjectStatusLambda}"
-            - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -189,18 +166,13 @@ Resources:
             {
               "aws_region": "${AWS::Region}",
               "private_key_secret_name": "${PrivateKeySecretName}",
+              "bucket": "${PrivateBucket}",
               "cloudfront": {
                 "domain_name": "${CloudFrontDomainName}",
                 "key_pair_id": "${CloudFrontKeyPairId}",
                 "expire_time_in_seconds": 15
               },
-              "users_table": "${UsersTable}",
-              "helpurl": "${HelpURL}",
-              "availability_lambda": "${AvailabilityLambda}",
-              "status_lambda": "${StatusLambda}",
-              "object_status_lambda": "${ObjectStatusLambda}",
-              "temporary_credentials_lambda": "${TemporaryCredentialsLambda}",
-              "retention_days": ${RetentionDays}
+              "temporary_credentials_lambda": "${TemporaryCredentialsLambda}"
             }
         - Name: SERVER_NAME
           Value: !Ref Hostname

@@ -16,22 +16,15 @@ phases:
     commands:
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
       - aws codepipeline get-pipeline-state --name $PIPELINE_NAME --query 'stageStates[*].actionStates[?actionName==`Source`].currentRevision.revisionId' --output text | cut -c1-7 > sha1.txt
-      - sed -i "s/\$SHA1/$(cat sha1.txt)/" cloudformation-wrapper.yaml
+      - sed -i "s/\$SHA1/$(cat sha1.txt)/" cloudformation.yaml
   build:
     commands:
       - cd door/; docker build -t $IMAGE_NAME .
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:latest
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
-      - pip install -r glacier-availability/requirements.txt -t glacier-availability/src/
-      - pip install -r glacier-status/requirements.txt -t glacier-status/src/
-      - pip install -r object-status/requirements.txt -t object-status/src/
-      - pip install -r glacier-upkeep/requirements.txt -t glacier-upkeep/src/
-      - pip install -r glacier-restore/requirements.txt -t glacier-restore/src/
-      - pip install -r glacier-poll/requirements.txt -t glacier-poll/src/
-      - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
       - pip install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
-      - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
+      - aws cloudformation package --template-file cloudformation.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
       - docker push $IMAGE_HOST/$IMAGE_NAME:latest

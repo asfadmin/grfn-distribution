@@ -32,68 +32,62 @@ Parameters:
 
   LoadBalancerCidrIp:
     Type: String
-    Default: 0.0.0.0/0
 
   Hostname:
     Type: String
-
-  HelpURL:
-    Type: String
     
-  AcknowledgementEmailIntervalInMinutes:
-    Type: Number
-    Default: 720
-
   CloudFrontKeyPairId:
     Type: String
 
   PrivateKeySecretName:
     Type: String
 
-  Maturity:
-    Description: Value for MATURITY tag to be applied to all taggable resources
-    Type: String
-    Default: DEV
-    AllowedValues:
-    - DEV
-    - TEST
-    - PROD
-
 Outputs:
 
   AppUrl:
-    Value: !GetAtt MainStack.Outputs.AppUrl
+    Value: !GetAtt DoorStack.Outputs.AppUrl
 
   LoadBalancerDnsName:
-    Value: !GetAtt MainStack.Outputs.LoadBalancerDnsName
+    Value: !GetAtt DoorStack.Outputs.LoadBalancerDnsName
 
   UrsRedirectUri:
-    Value: !GetAtt MainStack.Outputs.UrsRedirectUri
+    Value: !GetAtt DoorStack.Outputs.UrsRedirectUri
 
 Resources:
 
-  MainStack:
+  TemporaryCredentialsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      Tags:
-      - Key: MATURITY
-        Value: !Ref Maturity
-      - Key: APPLICATION
-        Value: GRFN-DISTRIBUTION
       Parameters:
-        Name: !Ref AWS::StackName
+        Name: !Sub "${AWS::StackName}-temporary-credentials"
+        Bucket: !Ref PrivateBucket
+      TemplateURL: temporary-credentials/cloudformation.yaml
+
+  DoorStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${AWS::StackName}-door"
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
-        PrivateBucket: !Ref PrivateBucket
-        LogBucket: !Ref LogBucket
+        CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
+        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
+        PrivateKeySecretName: !Ref PrivateKeySecretName
+        TemporaryCredentialsLambda: !GetAtt TemporaryCredentialsStack.Outputs.LambdaName
         DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
+        PrivateBucket: !Ref PrivateBucket
         UrsClientId: !Ref UrsClientId
         UrsAuthCode: !Ref UrsAuthCode
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
-        HelpURL: !Ref HelpURL
-        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
-        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
-        PrivateKeySecretName: !Ref PrivateKeySecretName
-      TemplateURL: cloudformation-main.yaml
+      TemplateURL: door/cloudformation.yaml
+
+  CloudFrontStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Ref AWS::StackName
+        Bucket: !Ref PrivateBucket
+        LogBucket: !Ref LogBucket
+      TemplateURL: cloudfront/cloudformation.yaml
