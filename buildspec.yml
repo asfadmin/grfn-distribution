@@ -23,13 +23,6 @@ phases:
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:latest
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
-      - pip install -r glacier-availability/requirements.txt -t glacier-availability/src/
-      - pip install -r glacier-status/requirements.txt -t glacier-status/src/
-      - pip install -r object-status/requirements.txt -t object-status/src/
-      - pip install -r glacier-upkeep/requirements.txt -t glacier-upkeep/src/
-      - pip install -r glacier-restore/requirements.txt -t glacier-restore/src/
-      - pip install -r glacier-poll/requirements.txt -t glacier-poll/src/
-      - pip install -r glacier-notifications/requirements.txt -t glacier-notifications/src/
       - pip install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
       - aws cloudformation package --template-file cloudformation-wrapper.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:

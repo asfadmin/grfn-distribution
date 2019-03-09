@@ -39,17 +39,6 @@ Parameters:
   Hostname:
     Type: String
     
-  HelpURL:
-    Type: String
-
-  RetentionDays:
-    Type: Number
-    Default: 7
-
-  AcknowledgementEmailIntervalInMinutes:
-    Type: Number
-    Default: 720
-
   CloudFrontKeyPairId:
     Type: String
 
@@ -69,88 +58,6 @@ Outputs:
 
 Resources:
 
-  DynamodbStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-db"
-      TemplateURL: dynamodb/cloudformation.yaml
-
-  GlacierAvailabilityStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-availability"
-        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
-        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
-      TemplateURL: glacier-availability/cloudformation.yaml
-
-  GlacierStatusStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-status"
-        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-        RetentionDays: !Ref RetentionDays
-      TemplateURL: glacier-status/cloudformation.yaml
-
-  GlacierUpkeepStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-upkeep"
-        BundlesTable: !GetAtt DynamodbStack.Outputs.BundlesTable
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-        EmailQueueName: !GetAtt GlacierNotificationsStack.Outputs.EmailQueueName
-        RestoreObjectLambda: !GetAtt GlacierRestoreStack.Outputs.LambdaName
-        PollObjectLambda: !GetAtt GlacierPollStack.Outputs.LambdaName
-      TemplateURL: glacier-upkeep/cloudformation.yaml
-
-  GlacierRestoreStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-restore"
-        Bucket: !Ref PrivateBucket
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-        RetentionDays: !Ref RetentionDays
-        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
-      TemplateURL: glacier-restore/cloudformation.yaml
-
-  GlacierPollStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-poll"
-        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-      TemplateURL: glacier-poll/cloudformation.yaml
-
-  GlacierNotificationsStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-glacier-notifications"
-        UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
-        ObjectsTable: !GetAtt DynamodbStack.Outputs.ObjectsTable
-        Hostname: !Ref Hostname
-        HelpURL: !Ref HelpURL
-        AcknowledgementEmailIntervalInMinutes: !Ref AcknowledgementEmailIntervalInMinutes
-        RetentionDays: !Ref RetentionDays
-      TemplateURL: glacier-notifications/cloudformation.yaml
-
-  ObjectStatusStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${Name}-object-status"
-        Bucket: !Ref PrivateBucket
-      TemplateURL: object-status/cloudformation.yaml
-
   TemporaryCredentialsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -169,10 +76,6 @@ Resources:
         CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
         CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
         PrivateKeySecretName: !Ref PrivateKeySecretName
-        UsersTable: !GetAtt DynamodbStack.Outputs.UsersTable
-        StatusLambda: !GetAtt GlacierStatusStack.Outputs.LambdaName
-        ObjectStatusLambda: !GetAtt ObjectStatusStack.Outputs.LambdaName
-        AvailabilityLambda: !GetAtt GlacierAvailabilityStack.Outputs.LambdaName
         TemporaryCredentialsLambda: !GetAtt TemporaryCredentialsStack.Outputs.LambdaName
         DoorContainerImage: !Ref DoorContainerImage
         UrsClientId: !Ref UrsClientId
@@ -180,8 +83,6 @@ Resources:
         CertificateArn: !Ref CertificateArn
         LoadBalancerCidrIp: !Ref LoadBalancerCidrIp
         Hostname: !Ref Hostname
-        HelpURL: !Ref HelpURL
-        RetentionDays: !Ref RetentionDays
       TemplateURL: door/cloudformation.yaml
 
   CloudFrontStack:
