@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
-  Name:
-    Type: String
-
   VpcId:
     Description: VPC Id in which to launch EC2 instances for ingest activities
     Type: AWS::EC2::VPC::Id
@@ -62,7 +59,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-temporary-credentials"
+        Name: !Sub "${AWS::StackName}-temporary-credentials"
         Bucket: !Ref PrivateBucket
       TemplateURL: temporary-credentials/cloudformation.yaml
 
@@ -70,7 +67,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${Name}-door"
+        Name: !Sub "${AWS::StackName}-door"
         VpcId: !Ref VpcId
         SubnetId: !Join [",", !Ref SubnetId]
         CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
@@ -89,7 +86,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Ref Name
+        Name: !Ref AWS::StackName
         Bucket: !Ref PrivateBucket
         LogBucket: !Ref LogBucket
       TemplateURL: cloudfront/cloudformation.yaml
