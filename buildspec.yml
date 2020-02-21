@@ -8,11 +8,9 @@ env:
     MATURITY: "TEST"
 
 phases:
-  install:
-    runtime-versions:
-      docker: 18
   pre_build:
     commands:
+      - docker --version
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
       - aws codepipeline get-pipeline-state --name $PIPELINE_NAME --query 'stageStates[*].actionStates[?actionName==`Source`].currentRevision.revisionId' --output text | cut -c1-7 > sha1.txt
       - sed -i "s/\$SHA1/$(cat sha1.txt)/" cloudformation.yaml
