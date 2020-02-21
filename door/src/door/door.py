@@ -82,7 +82,7 @@ def get_signed_signature_for_string(message, private_key_string):
     key = EVP.load_key_string(private_key_string.encode())
     key.reset_context(md='sha1')
     key.sign_init()
-    key.sign_update(str(message))
+    key.sign_update(message.encode())
     signature = key.sign_final()
     signature = aws_url_base64_encode(signature)
     return signature
