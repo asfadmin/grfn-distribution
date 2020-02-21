@@ -1,8 +1,4 @@
-# This build script is designed to run in AWS CodeBuild using the aws/codebuild/docker:17.09.0 image
-#   ubuntu 14.04.5
-#   docker 17.09.0
-
-version: 0.1
+version: 0.2
 
 environment_variables:
   plaintext:
@@ -12,6 +8,9 @@ environment_variables:
     MATURITY: "TEST"
 
 phases:
+  install:
+    runtime-versions:
+      docker: 18
   pre_build:
     commands:
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
@@ -19,11 +18,11 @@ phases:
       - sed -i "s/\$SHA1/$(cat sha1.txt)/" cloudformation.yaml
   build:
     commands:
-      - cd door/; docker build -t $IMAGE_NAME .
+      - docker build -t $IMAGE_NAME door/
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:latest
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
-      - pip install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
+      - pip3 install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
       - aws cloudformation package --template-file cloudformation.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
