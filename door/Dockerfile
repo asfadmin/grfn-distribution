@@ -4,7 +4,7 @@ MAINTAINER "Alaska Satellite Facility"
 ENTRYPOINT ["apachectl", "-DFOREGROUND"]
 
 RUN apt-get update
-RUN apt-get install -y apache2 libssl-dev libapache2-mod-wsgi apache2-dev python3 python3-pip
+RUN apt-get install -y apache2 libssl-dev libapache2-mod-wsgi-py3 apache2-dev python3 python3-pip
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
