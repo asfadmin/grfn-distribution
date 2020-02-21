@@ -72,9 +72,9 @@ def get_signed_url(object_key, user_id, config):
 
 def aws_url_base64_encode(msg):
     msg_base64 = base64.b64encode(msg)
-    msg_base64 = msg_base64.replace('+', '-')
-    msg_base64 = msg_base64.replace('=', '_')
-    msg_base64 = msg_base64.replace('/', '~')
+    msg_base64 = msg_base64.replace(b'+', b'-')
+    msg_base64 = msg_base64.replace(b'=', b'_')
+    msg_base64 = msg_base64.replace(b'/', b'~')
     return msg_base64
 
 
