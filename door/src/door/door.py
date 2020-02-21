@@ -1,11 +1,11 @@
 import os
 import json
-import base64
-from time import time
 import boto3
 from botocore.exceptions import ClientError
+from botocore.signers import CloudFrontSigner
+from datetime import datetime, timedelta
 from flask import Flask, redirect, request, abort
-from M2Crypto import EVP
+import rsa
 
 
 app = Flask(__name__)
@@ -62,30 +62,16 @@ def get_environ_value(key):
 
 
 def get_signed_url(object_key, user_id, config):
+    def rsa_signer(message):
+        private_key = config['cloudfront']['private_key']
+        key = rsa.PrivateKey.load_pkcs1(private_key.encode(), 'PEM')
+        return rsa.sign(message, key, 'SHA-1')
+
     base_url = 'https://{0}/{1}?userid={2}'.format(config['domain_name'], object_key, user_id)
-    expires = int(time()) + config['expire_time_in_seconds']
-    policy = create_policy(base_url, expires)
-    signature = get_signed_signature_for_string(policy, config['private_key'])
-    signed_url = create_url(base_url, expires, config['key_pair_id'], signature)
+    expiration_datetime = datetime.utcnow() + timedelta(seconds=config['expire_time_in_seconds'])
+    cf_signer = CloudFrontSigner(config['key_pair_id'], rsa_signer)
+    signed_url = cf_signer.generate_presigned_url(base_url, date_less_than=expiration_datetime)
     return signed_url
-
-
-def aws_url_base64_encode(msg):
-    msg_base64 = base64.b64encode(msg)
-    msg_base64 = msg_base64.replace(b'+', b'-')
-    msg_base64 = msg_base64.replace(b'=', b'_')
-    msg_base64 = msg_base64.replace(b'/', b'~')
-    return msg_base64
-
-
-def get_signed_signature_for_string(message, private_key_string):
-    key = EVP.load_key_string(private_key_string.encode())
-    key.reset_context(md='sha1')
-    key.sign_init()
-    key.sign_update(message.encode())
-    signature = key.sign_final()
-    signature = aws_url_base64_encode(signature)
-    return signature
 
 
 def get_secret(secret_name):
@@ -93,13 +79,3 @@ def get_secret(secret_name):
     response = sm.get_secret_value(SecretId=secret_name)
     secret = json.loads(response['SecretString'])
     return secret
-
-
-def create_policy(url, expires):
-    policy = '{"Statement":[{"Resource":"%(url)s","Condition":{"DateLessThan":{"AWS:EpochTime":%(expires)s}}}]}' % {'url':url, 'expires':expires}
-    return policy
-
-
-def create_url(base_url, expires, key_pair_id, signature):
-    signed_url = '{0}&Expires={1}&Key-Pair-Id={2}&Signature={3}'.format(base_url, expires, key_pair_id, signature)
-    return signed_url
