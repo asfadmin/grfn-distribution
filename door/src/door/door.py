@@ -63,7 +63,7 @@ def get_environ_value(key):
 
 def get_signed_url(object_key, user_id, config):
     def rsa_signer(message):
-        private_key = config['cloudfront']['private_key']
+        private_key = config['private_key']
         key = rsa.PrivateKey.load_pkcs1(private_key.encode(), 'PEM')
         return rsa.sign(message, key, 'SHA-1')
 
