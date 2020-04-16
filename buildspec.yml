@@ -19,7 +19,6 @@ phases:
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:latest
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$MATURITY
       - docker tag $IMAGE_NAME:latest $IMAGE_HOST/$IMAGE_NAME:$(cat sha1.txt)
-      - pip3 install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
       - aws cloudformation package --template-file cloudformation.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:

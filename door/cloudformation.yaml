@@ -20,9 +20,6 @@ Parameters:
   PrivateKeySecretName:
     Type: String
 
-  TemporaryCredentialsLambda:
-    Type: String
-
   DoorContainerImage:
     Type: String
 
@@ -133,9 +130,6 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
-          - Effect: Allow
-            Action: lambda:InvokeFunction
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TemporaryCredentialsLambda}"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -171,8 +165,7 @@ Resources:
                 "domain_name": "${CloudFrontDomainName}",
                 "key_pair_id": "${CloudFrontKeyPairId}",
                 "expire_time_in_seconds": 15
-              },
-              "temporary_credentials_lambda": "${TemporaryCredentialsLambda}"
+              }
             }
         - Name: SERVER_NAME
           Value: !Ref Hostname
