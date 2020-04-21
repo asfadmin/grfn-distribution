@@ -20,6 +20,11 @@ def init_app():
     private_key = get_secret(app.config['private_key_secret_name'])['private_key']
     app.config['cloudfront']['private_key'] = str(private_key)
 
+    
+@app.route('/credentials', methods=['GET'])	
+def get_temporary_credentials():
+    abort(410)
+
 
 @app.route('/download/<path:object_key>')
 def download_redirect(object_key):
