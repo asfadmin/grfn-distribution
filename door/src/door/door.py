@@ -20,8 +20,8 @@ def init_app():
     private_key = get_secret(app.config['private_key_secret_name'])['private_key']
     app.config['cloudfront']['private_key'] = str(private_key)
 
-    
-@app.route('/credentials', methods=['GET'])	
+
+@app.route('/credentials', methods=['GET'])
 def get_temporary_credentials():
     abort(410)
 
