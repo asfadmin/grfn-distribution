@@ -23,21 +23,7 @@ def init_app():
 
 @app.route('/credentials', methods=['GET'])
 def get_temporary_credentials():
-    payload = {'user_id': get_environ_value('URS_USERID')}
-    lamb = boto3.client('lambda')
-    response = lamb.invoke(
-        FunctionName=app.config['temporary_credentials_lambda'],
-        Payload=json.dumps(payload),
-    )
-    response_payload = json.loads(response['Payload'].read())
-    if 'errorType' in response_payload:
-        abort(500)
-    response = app.response_class(
-        response=json.dumps(response_payload, indent=4),
-        status=200,
-        mimetype='application/json'
-    )
-    return response
+    abort(410)
 
 
 @app.route('/download/<path:object_key>')
