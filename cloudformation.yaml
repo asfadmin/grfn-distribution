@@ -35,7 +35,7 @@ Parameters:
 
   Hostname:
     Type: String
-    
+
   CloudFrontKeyPairId:
     Type: String
 
@@ -55,14 +55,6 @@ Outputs:
 
 Resources:
 
-  TemporaryCredentialsStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Sub "${AWS::StackName}-temporary-credentials"
-        Bucket: !Ref PrivateBucket
-      TemplateURL: temporary-credentials/cloudformation.yaml
-
   DoorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -73,7 +65,6 @@ Resources:
         CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
         CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
         PrivateKeySecretName: !Ref PrivateKeySecretName
-        TemporaryCredentialsLambda: !GetAtt TemporaryCredentialsStack.Outputs.LambdaName
         DoorContainerImage: !Sub "${DoorContainerRepo}:$SHA1"
         PrivateBucket: !Ref PrivateBucket
         UrsClientId: !Ref UrsClientId

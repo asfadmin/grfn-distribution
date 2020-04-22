@@ -5,7 +5,7 @@ env:
     IMAGE_NAME: "door"
     IMAGE_HOST: "406893895021.dkr.ecr.us-east-1.amazonaws.com"
     MATURITY: "PROD"
-    SHA1: "f97a7e7"
+    SHA1: "cbde6c7"
 
 phases:
   pre_build:
@@ -16,7 +16,6 @@ phases:
     commands:
       - docker pull $IMAGE_HOST/$IMAGE_NAME:$SHA1
       - docker tag $IMAGE_HOST/$IMAGE_NAME:$SHA1 $IMAGE_HOST/$IMAGE_NAME:$MATURITY
-      - pip3 install -r temporary-credentials/requirements.txt -t temporary-credentials/src/
       - aws cloudformation package --template-file cloudformation.yaml --s3-bucket $BUCKET --s3-prefix $PREFIX --output-template-file cloudformation-final.yaml
   post_build:
     commands:
