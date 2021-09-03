@@ -1,0 +1,6 @@
+-r door/requirements.txt
+boto3
+flake8
+flake8-blind-except
+flake8-builtins
+flake8-import-order
