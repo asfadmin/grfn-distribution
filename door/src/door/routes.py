@@ -7,9 +7,11 @@ import rsa
 from botocore.exceptions import ClientError
 from botocore.signers import CloudFrontSigner
 from flask import abort, g, redirect
+from flask_cors import CORS
 
 from door import app
 
+CORS(app, origins=r'https?://([-\w]+\.)*asf\.alaska\.edu', supports_credentials=True)
 s3 = boto3.client('s3')
 
 

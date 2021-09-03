@@ -1,4 +1,5 @@
 boto3
 Flask
+Flask-Cors
 rsa
 serverless_wsgi
