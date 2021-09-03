@@ -28,4 +28,4 @@ jobs:
 
       - uses: scottbrenner/cfn-lint-action@v2
         with:
-          command: cfn-lint --info --ignore-checks W3002 --template cloudformation.yaml **/cloudformation.yaml
+          command: cfn-lint --info --ignore-checks W3002 --template **/cloudformation.yaml
