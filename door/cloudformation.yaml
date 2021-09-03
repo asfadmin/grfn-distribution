@@ -131,13 +131,14 @@ Resources:
     Properties:
       Environment:
         Variables:
-          CloudFrontDomainName: !Ref CloudFrontDomainName
-          CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
-          PrivateKeySecretName: !Ref PrivateKeySecretName
-          PrivateBucket: !Ref PrivateBucket
-          AuthUrl: !Ref AuthUrl
-          JwtCookieName: !Ref JwtCookieName
-          JwtPublicKey: !Ref JwtPublicKey
+          CLOUDFRONT_DOMAIN_NAME: !Ref CloudFrontDomainName
+          CLOUDFRONT_KEY_PAIR_ID: !Ref CloudFrontKeyPairId
+          PRIVATE_KEY_SECRET_NAME: !Ref PrivateKeySecretName
+          EXPIRE_TIME_IN_SECONDS: 15
+          BUCKET: !Ref PrivateBucket
+          AUTH_URL: !Ref AuthUrl
+          JWT_COOKIE_NAME: !Ref JwtCookieName
+          JWT_PUBLIC_KEY: !Ref JwtPublicKey
       Code: src/
       Handler: door.lambda_handler.handler
       MemorySize: 128

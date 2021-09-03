@@ -21,7 +21,7 @@ def init_app():
 
 @app.before_request
 def authenticate_user():
-    g.user = 'asjohnston'  # FIXME
+    g.user_id = 'asjohnston'  # FIXME
 
 
 @app.route('/download/<path:object_key>')
@@ -44,7 +44,7 @@ def get_signed_url(object_key, user_id):
 
     base_url = f'https://{os.environ["CLOUDFRONT_DOMAIN_NAME"]}/{object_key}?userid={user_id}'
     expiration_datetime = datetime.now(tz=timezone.utc) + timedelta(seconds=int(os.environ['EXPIRE_TIME_IN_SECONDS']))
-    cf_signer = CloudFrontSigner(os.environ['KEY_PAIR_ID'], rsa_signer)
+    cf_signer = CloudFrontSigner(os.environ['CLOUDFRONT_KEY_PAIR_ID'], rsa_signer)
     signed_url = cf_signer.generate_presigned_url(base_url, date_less_than=expiration_datetime)
     return signed_url
 
