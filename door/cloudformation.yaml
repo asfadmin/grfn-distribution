@@ -141,7 +141,7 @@ Resources:
           JWT_PUBLIC_KEY: !Ref JwtPublicKey
       Code: src/
       Handler: door.lambda_handler.handler
-      MemorySize: 128
+      MemorySize: 3008
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.9
       Timeout: 30
