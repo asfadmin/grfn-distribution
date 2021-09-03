@@ -16,7 +16,7 @@ s3 = boto3.client('s3')
 @app.before_first_request
 def init_app():
     private_key = get_secret(os.environ['PRIVATE_KEY_SECRET_NAME'])['private_key']
-    g.cloudfront_private_key = str(private_key)
+    os.environ['CLOUDFRONT_PRIVATE_KEY'] = str(private_key)
 
 
 @app.before_request
@@ -39,7 +39,7 @@ def download_redirect(object_key):
 
 def get_signed_url(object_key, user_id):
     def rsa_signer(message):
-        key = rsa.PrivateKey.load_pkcs1(g.cloudfront_private_key.encode(), 'PEM')
+        key = rsa.PrivateKey.load_pkcs1(os.environ['CLOUDFRONT_PRIVATE_KEY'].encode(), 'PEM')
         return rsa.sign(message, key, 'SHA-1')
 
     base_url = f'https://{os.environ["CLOUDFRONT_DOMAIN_NAME"]}/{object_key}?userid={user_id}'
