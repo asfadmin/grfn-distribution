@@ -36,7 +36,7 @@ def authenticate_user():
     cookie = request.cookies.get(os.environ['JWT_COOKIE_NAME'])
     token = decode_token(cookie)
     if not token:
-        redirect_url = app.config['AUTH_URL'] + '&state=' + quote_plus(request.base_url)
+        redirect_url = os.environ['AUTH_URL'] + '&state=' + quote_plus(request.base_url)
         if not request.headers.get('User-Agent', '').startswith('Mozilla'):
             redirect_url += '&app_type=401'
         return redirect(redirect_url)
