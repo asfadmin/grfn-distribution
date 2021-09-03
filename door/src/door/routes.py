@@ -38,13 +38,13 @@ def download_redirect(object_key):
             abort(404)
         raise
 
-    signed_url = get_signed_url(object_key, g.user_id)
+    signed_url = get_signed_url(object_key, g.user_id, os.environ['CLOUDFRONT_PRIVATE_KEY'])
     return redirect(signed_url)
 
 
-def get_signed_url(object_key, user_id):
+def get_signed_url(object_key, user_id, private_key):
     def rsa_signer(message):
-        key = rsa.PrivateKey.load_pkcs1(os.environ['CLOUDFRONT_PRIVATE_KEY'].encode(), 'PEM')
+        key = rsa.PrivateKey.load_pkcs1(private_key.encode(), 'PEM')
         return rsa.sign(message, key, 'SHA-1')
 
     base_url = f'https://{os.environ["CLOUDFRONT_DOMAIN_NAME"]}/{object_key}?userid={user_id}'
