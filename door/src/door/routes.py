@@ -24,7 +24,7 @@ def authenticate_user():
     g.user_id = 'asjohnston'  # FIXME
 
 
-@app.route('/download/<path:object_key>')
+@app.route('/door/download/<path:object_key>')
 def download_redirect(object_key):
     try:
         s3.head_object(Bucket=os.environ['BUCKET'], Key=object_key)
