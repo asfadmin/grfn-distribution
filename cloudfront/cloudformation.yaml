@@ -31,6 +31,27 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref Name
 
+  CachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Ref Name
+        DefaultTTL: 86400
+        MinTTL: 0
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers:
+              - Access-Control-Request-Headers
+              - Access-Control-Request-Method
+              - Origin
+          CookiesConfig:
+            CookieBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -44,8 +65,7 @@ Resources:
           S3OriginConfig:
             OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginAccessIdentity}"
         DefaultCacheBehavior:
-          ForwardedValues:
-            QueryString: False
+          CachePolicyId: !Ref CachePolicy
           TargetOriginId: !Ref Bucket
           ViewerProtocolPolicy: redirect-to-https
           TrustedSigners:
