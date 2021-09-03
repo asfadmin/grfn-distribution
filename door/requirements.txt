@@ -2,3 +2,5 @@ Flask
 Flask-Cors
 rsa
 serverless_wsgi
+PyJWT
+cryptography

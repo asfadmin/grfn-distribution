@@ -1,18 +1,28 @@
 import json
 import os
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote_plus
 
 import boto3
+import jwt
 import rsa
 from botocore.exceptions import ClientError
 from botocore.signers import CloudFrontSigner
-from flask import abort, g, redirect
+from flask import abort, g, redirect, request
 from flask_cors import CORS
 
 from door import app
 
 CORS(app, origins=r'https?://([-\w]+\.)*asf\.alaska\.edu', supports_credentials=True)
 s3 = boto3.client('s3')
+
+
+def decode_token(token):
+    try:
+        payload = jwt.decode(token, os.environ['JWT_PUBLIC_KEY'], algorithms='RS256')
+        return payload
+    except (jwt.ExpiredSignatureError, jwt.DecodeError):
+        return None
 
 
 @app.before_first_request
@@ -23,7 +33,14 @@ def init_app():
 
 @app.before_request
 def authenticate_user():
-    g.user_id = 'asjohnston'  # FIXME
+    cookie = request.cookies.get(os.environ['JWT_COOKIE_NAME'])
+    token = decode_token(cookie)
+    if not token:
+        redirect_url = app.config['AUTH_URL'] + '&state=' + quote_plus(request.base_url)
+        if not request.headers.get('User-Agent', '').startswith('Mozilla'):
+            redirect_url += '&app_type=401'
+        return redirect(redirect_url)
+    g.user_id = token['urs-user-id']
 
 
 @app.route('/door/credentials', methods=['GET'])
