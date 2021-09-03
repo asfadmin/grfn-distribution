@@ -1,12 +1,12 @@
 import json
 import os
-
-from botocore.exceptions import ClientError
-from botocore.signers import CloudFrontSigner
 from datetime import datetime, timedelta, timezone
-from flask import abort, g, redirect
+
 import boto3
 import rsa
+from botocore.exceptions import ClientError
+from botocore.signers import CloudFrontSigner
+from flask import abort, g, redirect
 
 from door import app
 
