@@ -23,9 +23,11 @@ Parameters:
 
   AuthUrl:
     Type: String
+    Default: https://urs.earthdata.nasa.gov/oauth/authorize?response_type=code&client_id=BO_n7nTIlMljdvU6kRRB3g&redirect_uri=https://auth.asf.alaska.edu/login
 
   JwtCookieName:
     Type: String
+    Default: asf-urs
 
   JwtPublicKey:
     Type: String
