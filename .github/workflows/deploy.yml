@@ -1,0 +1,80 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - environment: grfn
+            stack_name: distribution-prod-20190311
+            domain: grfn.asf.alaska.edu
+            auth_url: "https://urs.earthdata.nasa.gov/oauth/authorize?response_type=code&client_id=BO_n7nTIlMljdvU6kRRB3g&redirect_uri=https://auth.asf.alaska.edu/login"
+            jwt_cookie_name: asf-urs
+            log_bucket: grfn-logs
+            private_bucket: grfn-content-prod
+            deploy_ref: refs/heads/prod
+
+          - environment: grfn-test
+            stack_name: distribution-test
+            domain: grfn-test.asf.alaska.edu
+            auth_url: "https://uat.urs.earthdata.nasa.gov/oauth/authorize?client_id=Qkd0Z9KbhG86qedkRC7nSA&response_type=code&redirect_uri=https://auth-test-jenk.asf.alaska.edu/login"
+            jwt_cookie_name: asf-urs
+            log_bucket: grfn-logs
+            private_bucket: grfn-content-test
+            deploy_ref: refs/heads/test
+
+    environment:
+      name: ${{ matrix.environment }}
+      url: https://${{ matrix.domain }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+
+      - name: install dependancies and render templates
+        if: github.ref == matrix.deploy_ref
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r door/requirements.txt -t door/src/
+
+      - name: package and deploy
+        if: github.ref == matrix.deploy_ref
+        shell: bash
+        run: |
+          aws cloudformation package \
+            --template-file cloudformation.yaml \
+            --s3-bucket grfn-build \
+            --s3-prefix cloudformation/ \
+            --output-template-file cloudformation-final.yaml
+          aws cloudformation deploy \
+            --stack-name ${{ matrix.stack_name }} \
+            --template-file packaged.yml \
+            --role-arn ${{ secrets.CLOUDFORMATION_ROLE_ARN }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+                CertificateArn='${{ secrets.CETRIFICATE_ARN }}' \
+                CloudFrontKeyPairId='${{ secrets.CLOUDFRONT_KEY_PAIR_ID }}' \
+                DomainName='${{ matrix.domain }}' \
+                LogBucket='${{ matrix.log_bucket }}' \
+                PrivateBucket='${{ matrix.private_bucket }}' \
+                PrivateKeySecretName='${{ secrets.PRIVATE_KEY_SECRET_NAME }}' \
+                AuthUrl='${{ matrix.auth_url }}' \
+                JwtCookieName: '${{ matrix.jwt_cookie_name }}' \
+                JwtPublicKey='${{ secrets.JWT_PUBLIC_KEY }}'
