@@ -76,5 +76,5 @@ jobs:
                 PrivateBucket='${{ matrix.private_bucket }}' \
                 PrivateKeySecretName='${{ secrets.PRIVATE_KEY_SECRET_NAME }}' \
                 AuthUrl='${{ matrix.auth_url }}' \
-                JwtCookieName: '${{ matrix.jwt_cookie_name }}' \
+                JwtCookieName='${{ matrix.jwt_cookie_name }}' \
                 JwtPublicKey='${{ secrets.JWT_PUBLIC_KEY }}'
