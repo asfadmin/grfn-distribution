@@ -61,7 +61,7 @@ jobs:
           aws cloudformation package \
             --template-file cloudformation.yaml \
             --s3-bucket grfn-build \
-            --s3-prefix cloudformation/ \
+            --s3-prefix cloudformation \
             --output-template-file packaged.yml
           aws cloudformation deploy \
             --stack-name ${{ matrix.stack_name }} \
