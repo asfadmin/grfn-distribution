@@ -5,12 +5,6 @@ Parameters:
   Name:
     Type: String
 
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-
-  SubnetId:
-    Type: List<AWS::EC2::Subnet::Id>
-
   CloudFrontDomainName:
     Type: String
 
@@ -20,275 +14,134 @@ Parameters:
   PrivateKeySecretName:
     Type: String
 
-  DoorContainerImage:
-    Type: String
-
   PrivateBucket:
-    Type: String
-
-  UrsClientId:
-    Type: String
-
-  UrsAuthCode:
     Type: String
 
   CertificateArn:
     Type: String
 
-  LoadBalancerCidrIp:
+  DomainName:
     Type: String
 
-  Hostname:
+  AuthUrl:
     Type: String
 
-  Ami:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  JwtCookieName:
+    Type: String
 
-Outputs:
-
-  AppUrl:
-    Value: !Sub "https://${Hostname}/door/"
-
-  LoadBalancerDnsName:
-    Value: !GetAtt LoadBalancer.DNSName
-
-  UrsRedirectUri:
-    Value: !Sub "https://${Hostname}/door/oauth"
+  JwtPublicKey:
+    Type: String
 
 Resources:
 
-  Cluster:
-    Type: AWS::ECS::Cluster
+  Api:
+    Type: AWS::ApiGatewayV2::Api
     Properties:
-      ClusterName: !Ref Name
+      Name: !Ref Name
+      ProtocolType: HTTP
+      Target: !GetAtt Lambda.Arn
+      CredentialsArn: !GetAtt ApiRole.Arn
 
-  InstanceSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  ApiOverrides:
+    Type: AWS::ApiGatewayV2::ApiGatewayManagedOverrides
     Properties:
-      GroupName: !Sub "${Name}-instance"
-      GroupDescription: !Sub "Security group for ${Name} servers"
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-      - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
+      ApiId: !Ref Api
+      Stage:
+        AccessLogSettings:
+          DestinationArn: !GetAtt ApiLogGroup.Arn
+          Format: '{"sourceIp":"$context.identity.sourceIp","httpMethod":"$context.httpMethod","path":"$context.path","status":"$context.status","responseLength":"$context.responseLength","responseLatency":"$context.responseLatency","requestTime":"$context.requestTime","protocol":"$context.protocol","userAgent":"$context.identity.userAgent","requestId":"$context.requestId"}'
 
-  LaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/ecsInstanceRole"
-      ImageId: !Ref Ami
-      InstanceType: t3.micro
-      SecurityGroups:
-      - !Ref InstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |-
-          #!/bin/bash -xe
-          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
-          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
-      InstanceMonitoring: false
+      RetentionInDays: 180
 
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
+  CustomDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
     Properties:
-      VPCZoneIdentifier: !Ref SubnetId
-      LaunchConfigurationName: !Ref LaunchConfiguration
-      MinSize: 1
-      MaxSize: 2
-      Tags:
-      - Key: Name
-        Value: !Ref Name
-        PropagateAtLaunch: true
+      DomainName: !Ref DomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CertificateArn
+          EndpointType: REGIONAL
 
-  TaskIamRole:
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref Api
+      DomainName: !Ref CustomDomainName
+      Stage: $default
+
+  ApiRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Ref Name
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
           Action: sts:AssumeRole
           Principal:
-            Service:
-            - ec2.amazonaws.com
-            - ecs-tasks.amazonaws.com
+            Service: apigateway.amazonaws.com
           Effect: Allow
       Policies:
-      - PolicyName: policy
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
-          - Effect: Allow
-            Action: s3:ListBucket
-            Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
+        - PolicyName: policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt Lambda.Arn
 
-  LogGroup:
+  LambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Ref Name
-      RetentionInDays: 30
+      LogGroupName: !Sub "/aws/lambda/${Lambda}"
+      RetentionInDays: 90
 
-  TaskDefinition:
-    Type: AWS::ECS::TaskDefinition
+  LambdaRole:
+    Type: AWS::IAM::Role
     Properties:
-      TaskRoleArn: !Ref TaskIamRole
-      ContainerDefinitions:
-      - Name: !Ref Name
-        Image: !Ref DoorContainerImage
-        MemoryReservation: 256
-        Cpu: 1024
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            awslogs-group: !Ref LogGroup
-            awslogs-region: !Ref AWS::Region
-        PortMappings:
-        - ContainerPort: 80
-          HostPort: 80
-        Environment:
-        - Name: DOOR_CONFIG
-          Value: !Sub |-
-            {
-              "aws_region": "${AWS::Region}",
-              "private_key_secret_name": "${PrivateKeySecretName}",
-              "bucket": "${PrivateBucket}",
-              "cloudfront": {
-                "domain_name": "${CloudFrontDomainName}",
-                "key_pair_id": "${CloudFrontKeyPairId}",
-                "expire_time_in_seconds": 15
-              }
-            }
-        - Name: SERVER_NAME
-          Value: !Ref Hostname
-        - Name: URS_ACCESS_ERROR_URL
-          Value: !Sub "https://${Hostname}/error/failedauth.html"
-        - Name: URS_AUTH_CODE
-          Value: !Ref UrsAuthCode
-        - Name: URS_AUTH_SERVER
-          Value: https://urs.earthdata.nasa.gov
-        - Name: URS_CLIENT_ID
-          Value: !Ref UrsClientId
-        - Name: URS_REDIRECT_URL
-          Value: !Sub "https://${Hostname}/door/oauth"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+          Effect: Allow
+      Policies:
+        - PolicyName: policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${PrivateKeySecretName}*"
+            - Effect: Allow
+              Action: s3:ListBucket
+              Resource: !Sub "arn:aws:s3:::${PrivateBucket}"
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub "arn:aws:s3:::${PrivateBucket}/*"
 
-  GroupScalingPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
+  Lambda:
+    Type: AWS::Lambda::Function
     Properties:
-      AutoScalingGroupName: !Ref AutoScalingGroup
-      PolicyType: TargetTrackingScaling
-      Cooldown: 300
-      TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: 50
-
-  ServiceScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MinCapacity: 1
-      MaxCapacity: 2
-      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
-      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsAutoscaleRole"
-      ScalableDimension: ecs:service:DesiredCount
-      ServiceNamespace: ecs
-
-  ServiceScalingPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: !Ref Name
-      PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref ServiceScalingTarget
-      TargetTrackingScalingPolicyConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ECSServiceAverageCPUUtilization
-        TargetValue: 50
-
-  Service:
-    Type: AWS::ECS::Service
-    DependsOn:
-    - HttpListener
-    - HttpsListener
-    Properties:
-      ServiceName: !Ref Name
-      Cluster: !Ref Cluster
-      DesiredCount: 1
-      TaskDefinition: !Ref TaskDefinition
-      DeploymentConfiguration:
-        MinimumHealthyPercent: 0
-        MaximumPercent: 100
-      LoadBalancers:
-      - TargetGroupArn: !Ref TargetGroup
-        ContainerName: !Ref Name
-        ContainerPort: 80
-
-  TargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Ref Name
-      HealthCheckIntervalSeconds: 120
-      HealthCheckPath: /healthcheck.html
-      HealthyThresholdCount: 2
-      Port: 80
-      Protocol: HTTP
-      VpcId: !Ref VpcId
-      TargetGroupAttributes:
-      - Key: deregistration_delay.timeout_seconds
-        Value: 0
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub "${Name}-load-balancer"
-      GroupDescription: !Sub "Security group for ${Name} load balancer"
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-      - CidrIp: !Ref LoadBalancerCidrIp
-        IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-      - CidrIp: !Ref LoadBalancerCidrIp
-        IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Ref Name
-      Subnets: !Ref SubnetId
-      SecurityGroups:
-      - !GetAtt LoadBalancerSecurityGroup.GroupId
-
-  HttpListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-      - Type: redirect
-        RedirectConfig:
-          StatusCode: HTTP_301
-          Protocol: HTTPS
-          Port: 443
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 80
-      Protocol: HTTP
-
-  HttpsListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref TargetGroup
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 443
-      Protocol: HTTPS
-      Certificates:
-      - CertificateArn: !Ref CertificateArn
+      Environment:
+        Variables:
+          CLOUDFRONT_DOMAIN_NAME: !Ref CloudFrontDomainName
+          CLOUDFRONT_KEY_PAIR_ID: !Ref CloudFrontKeyPairId
+          PRIVATE_KEY_SECRET_NAME: !Ref PrivateKeySecretName
+          EXPIRE_TIME_IN_SECONDS: 15
+          BUCKET: !Ref PrivateBucket
+          AUTH_URL: !Ref AuthUrl
+          JWT_COOKIE_NAME: !Ref JwtCookieName
+          JWT_PUBLIC_KEY: !Ref JwtPublicKey
+      Code: src/
+      Handler: door.lambda_handler.handler
+      MemorySize: 3008
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 30
