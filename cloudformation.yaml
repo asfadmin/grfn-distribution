@@ -6,19 +6,10 @@ Parameters:
     Description: Name of S3 bucket in which zipped output products will be archived
     Type: String
 
-  LogBucket:
-    Type: String
-
   CertificateArn:
     Type: String
 
   DomainName:
-    Type: String
-
-  CloudFrontKeyPairId:
-    Type: String
-
-  PrivateKeySecretName:
     Type: String
 
   AuthUrl:
@@ -37,9 +28,6 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${AWS::StackName}-door"
-        CloudFrontDomainName: !GetAtt CloudFrontStack.Outputs.DomainName
-        CloudFrontKeyPairId: !Ref CloudFrontKeyPairId
-        PrivateKeySecretName: !Ref PrivateKeySecretName
         PrivateBucket: !Ref PrivateBucket
         CertificateArn: !Ref CertificateArn
         DomainName: !Ref DomainName
@@ -47,12 +35,3 @@ Resources:
         JwtCookieName: !Ref JwtCookieName
         JwtPublicKey: !Ref JwtPublicKey
       TemplateURL: door/cloudformation.yaml
-
-  CloudFrontStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        Name: !Ref AWS::StackName
-        Bucket: !Ref PrivateBucket
-        LogBucket: !Ref LogBucket
-      TemplateURL: cloudfront/cloudformation.yaml
