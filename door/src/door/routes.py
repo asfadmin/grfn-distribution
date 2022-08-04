@@ -1,13 +1,9 @@
-import json
 import os
-from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
 
 import boto3
 import jwt
-import rsa
 from botocore.exceptions import ClientError
-from botocore.signers import CloudFrontSigner
 from flask import abort, g, redirect, request
 from flask_cors import CORS
 
@@ -23,12 +19,6 @@ def decode_token(token):
         return payload
     except (jwt.ExpiredSignatureError, jwt.DecodeError):
         return None
-
-
-@app.before_first_request
-def init_app():
-    private_key = get_secret(os.environ['PRIVATE_KEY_SECRET_NAME'])['private_key']
-    os.environ['CLOUDFRONT_PRIVATE_KEY'] = str(private_key)
 
 
 @app.before_request
@@ -57,24 +47,15 @@ def download_redirect(object_key):
             abort(404)
         raise
 
-    signed_url = get_signed_url(object_key, g.user_id, os.environ['CLOUDFRONT_PRIVATE_KEY'])
+    signed_url = get_signed_url(object_key, g.user_id)
     return redirect(signed_url)
 
 
-def get_signed_url(object_key, user_id, private_key):
-    def rsa_signer(message):
-        key = rsa.PrivateKey.load_pkcs1(private_key.encode(), 'PEM')
-        return rsa.sign(message, key, 'SHA-1')
-
-    base_url = f'https://{os.environ["CLOUDFRONT_DOMAIN_NAME"]}/{object_key}?userid={user_id}'
-    expiration_datetime = datetime.now(tz=timezone.utc) + timedelta(seconds=int(os.environ['EXPIRE_TIME_IN_SECONDS']))
-    cf_signer = CloudFrontSigner(os.environ['CLOUDFRONT_KEY_PAIR_ID'], rsa_signer)
-    signed_url = cf_signer.generate_presigned_url(base_url, date_less_than=expiration_datetime)
+def get_signed_url(object_key, user_id):
+    signed_url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={'Bucket': os.environ['BUCKET'], 'Key': object_key},
+        ExpiresIn=int(os.environ['EXPIRE_TIME_IN_SECONDS']),
+    )
+    signed_url += f'&user_id={user_id}'
     return signed_url
-
-
-def get_secret(secret_name):
-    sm = boto3.client('secretsmanager', os.environ['AWS_REGION'])
-    response = sm.get_secret_value(SecretId=secret_name)
-    secret = json.loads(response['SecretString'])
-    return secret

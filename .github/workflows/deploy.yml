@@ -17,7 +17,6 @@ jobs:
             domain: grfn.asf.alaska.edu
             auth_url: "https://urs.earthdata.nasa.gov/oauth/authorize?response_type=code&client_id=BO_n7nTIlMljdvU6kRRB3g&redirect_uri=https://auth.asf.alaska.edu/login"
             jwt_cookie_name: asf-urs
-            log_bucket: grfn-logs
             private_bucket: grfn-content-prod
             deploy_ref: refs/heads/prod
 
@@ -26,7 +25,6 @@ jobs:
             domain: grfn-test.asf.alaska.edu
             auth_url: "https://uat.urs.earthdata.nasa.gov/oauth/authorize?client_id=Qkd0Z9KbhG86qedkRC7nSA&response_type=code&redirect_uri=https://auth-test-jenk.asf.alaska.edu/login"
             jwt_cookie_name: asf-urs
-            log_bucket: grfn-logs
             private_bucket: grfn-content-test
             deploy_ref: refs/heads/test
 
@@ -70,11 +68,8 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
                 CertificateArn='${{ secrets.CETRIFICATE_ARN }}' \
-                CloudFrontKeyPairId='${{ secrets.CLOUDFRONT_KEY_PAIR_ID }}' \
                 DomainName='${{ matrix.domain }}' \
-                LogBucket='${{ matrix.log_bucket }}' \
                 PrivateBucket='${{ matrix.private_bucket }}' \
-                PrivateKeySecretName='${{ secrets.PRIVATE_KEY_SECRET_NAME }}' \
                 AuthUrl='${{ matrix.auth_url }}' \
                 JwtCookieName='${{ matrix.jwt_cookie_name }}' \
                 JwtPublicKey='${{ secrets.JWT_PUBLIC_KEY }}'
