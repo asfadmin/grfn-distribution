@@ -52,7 +52,8 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r door/requirements.txt -t door/src/
+          python -m pip install -r requirements-door.txt -t door/src/
+          python -m pip install -r requirements-door-binary.txt --platform manylinux2014_x86_64 --only-binary=:all: -t door/src/
 
       - name: package and deploy
         if: github.ref == matrix.deploy_ref
