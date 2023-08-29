@@ -24,7 +24,7 @@ jobs:
           - environment: grfn-test
             stack_name: distribution-test
             domain: grfn-test.asf.alaska.edu
-            auth_url: "https://uat.urs.earthdata.nasa.gov/oauth/authorize?client_id=Qkd0Z9KbhG86qedkRC7nSA&response_type=code&redirect_uri=https://auth-test-jenk.asf.alaska.edu/login"
+            auth_url: "https://urs.earthdata.nasa.gov/oauth/authorize?response_type=code&client_id=BO_n7nTIlMljdvU6kRRB3g&redirect_uri=https://auth.asf.alaska.edu/login"
             jwt_cookie_name: asf-urs
             log_bucket: grfn-logs
             private_bucket: grfn-content-test
