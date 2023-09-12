@@ -24,7 +24,7 @@ jobs:
           - environment: grfn-test
             stack_name: distribution-test
             domain: grfn-test.asf.alaska.edu
-            auth_url: "https://uat.urs.earthdata.nasa.gov/oauth/authorize?client_id=Qkd0Z9KbhG86qedkRC7nSA&response_type=code&redirect_uri=https://auth-test-jenk.asf.alaska.edu/login"
+            auth_url: "https://urs.earthdata.nasa.gov/oauth/authorize?response_type=code&client_id=BO_n7nTIlMljdvU6kRRB3g&redirect_uri=https://auth.asf.alaska.edu/login"
             jwt_cookie_name: asf-urs
             log_bucket: grfn-logs
             private_bucket: grfn-content-test
@@ -35,15 +35,15 @@ jobs:
       url: https://${{ matrix.domain }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -52,7 +52,8 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r door/requirements.txt -t door/src/
+          python -m pip install -r requirements-door.txt -t door/src/
+          python -m pip install -r requirements-door-binary.txt --platform manylinux2014_x86_64 --only-binary=:all: -t door/src/
 
       - name: package and deploy
         if: github.ref == matrix.deploy_ref
