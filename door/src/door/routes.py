@@ -1,4 +1,3 @@
-import json
 import os
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
@@ -23,12 +22,6 @@ def decode_token(token):
         return payload
     except (jwt.ExpiredSignatureError, jwt.DecodeError):
         return None
-
-
-@app.before_first_request
-def init_app():
-    private_key = get_secret(os.environ['PRIVATE_KEY_SECRET_NAME'])['private_key']
-    os.environ['CLOUDFRONT_PRIVATE_KEY'] = str(private_key)
 
 
 @app.before_request
@@ -71,10 +64,3 @@ def get_signed_url(object_key, user_id, private_key):
     cf_signer = CloudFrontSigner(os.environ['CLOUDFRONT_KEY_PAIR_ID'], rsa_signer)
     signed_url = cf_signer.generate_presigned_url(base_url, date_less_than=expiration_datetime)
     return signed_url
-
-
-def get_secret(secret_name):
-    sm = boto3.client('secretsmanager', os.environ['AWS_REGION'])
-    response = sm.get_secret_value(SecretId=secret_name)
-    secret = json.loads(response['SecretString'])
-    return secret
