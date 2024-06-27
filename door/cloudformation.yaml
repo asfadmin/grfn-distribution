@@ -143,5 +143,5 @@ Resources:
       Handler: door.lambda_handler.handler
       MemorySize: 3008
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.9
+      Runtime: python3.12
       Timeout: 30
