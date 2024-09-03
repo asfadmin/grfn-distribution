@@ -8,7 +8,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.0.2]
 ### Fixed
-- Upgraded to flask-cors v5.0.0 from v4.0.1. Resolves [CVE-2024-6221](https://github.com/ASFHyP3/hyp3/security/dependabot/17).
+- Upgraded to flask-cors v5.0.0 from v4.0.1. Resolves [CVE-2024-6221](https://github.com/asfadmin/grfn-distribution/security/dependabot/6).
 
 ## [1.0.1]
 ### Changed
