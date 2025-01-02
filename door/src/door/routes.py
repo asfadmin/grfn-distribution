@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import quote_plus
 
 import boto3
@@ -11,6 +11,7 @@ from flask import abort, g, redirect, request
 from flask_cors import CORS
 
 from door import app
+
 
 CORS(app, origins=r'https?://([-\w]+\.)*asf\.alaska\.edu', supports_credentials=True)
 s3 = boto3.client('s3')
@@ -60,7 +61,7 @@ def get_signed_url(object_key, user_id, private_key):
         return rsa.sign(message, key, 'SHA-1')
 
     base_url = f'https://{os.environ["CLOUDFRONT_DOMAIN_NAME"]}/{object_key}?userid={user_id}'
-    expiration_datetime = datetime.now(tz=timezone.utc) + timedelta(seconds=int(os.environ['EXPIRE_TIME_IN_SECONDS']))
+    expiration_datetime = datetime.now(tz=UTC) + timedelta(seconds=int(os.environ['EXPIRE_TIME_IN_SECONDS']))
     cf_signer = CloudFrontSigner(os.environ['CLOUDFRONT_KEY_PAIR_ID'], rsa_signer)
     signed_url = cf_signer.generate_presigned_url(base_url, date_less_than=expiration_datetime)
     return signed_url
