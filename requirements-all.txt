@@ -1,0 +1,4 @@
+-r requirements-door.txt
+-r requirements-door-binary.txt
+ruff
+mypy
