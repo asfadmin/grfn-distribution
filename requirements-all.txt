@@ -1,4 +1,4 @@
 -r requirements-door.txt
 -r requirements-door-binary.txt
-ruff==0.9.5
+ruff==0.11.0
 mypy==1.15.0
