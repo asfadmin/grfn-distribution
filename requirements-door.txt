@@ -1,6 +1,6 @@
 boto3==1.37.37
 Flask==3.1.0
 Flask-Cors==5.0.1
-rsa==4.9
+rsa==4.9.1
 serverless_wsgi==3.0.5
 PyJWT==2.10.1
