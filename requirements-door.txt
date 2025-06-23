@@ -1,4 +1,4 @@
-boto3==1.38.36
+boto3==1.38.41
 Flask==3.1.1
 Flask-Cors==6.0.1
 rsa==4.9.1
