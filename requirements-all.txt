@@ -1,5 +1,5 @@
 -r requirements-door.txt
 -r requirements-door-binary.txt
 cfn-lint==1.36.1
-ruff==0.12.0
+ruff==0.12.1
 mypy==1.16.1
